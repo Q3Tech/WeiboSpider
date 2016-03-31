@@ -7,7 +7,9 @@ from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, Boolean, DATETIME, TEXT
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql.expression import false
+from sqlalchemy.sql.expression import false, true
+from sqlalchemy.sql.expression import func
+
 
 import settings
 
@@ -81,6 +83,12 @@ class AccountDAO(object):
             session.add(account)
         session.commit()
         return account, created
+
+    @classmethod
+    def get_random_account(cls):
+        q = session.query(Account).filter(Account.is_login == true())
+        return q.order_by(func.rand()).first()
+        # avail_count = session.query(Account).fi
 
 
 def create_db():
