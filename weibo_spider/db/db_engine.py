@@ -2,7 +2,7 @@
 # @Author: Comzyh
 # @Date:   2016-03-06 20:25:20
 # @Last Modified by:   Comzyh
-# @Last Modified time: 2016-03-30 18:58:17
+# @Last Modified time: 2016-04-04 03:55:58
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, Boolean, DATETIME, TEXT
 from sqlalchemy.ext.declarative import declarative_base
@@ -88,7 +88,10 @@ class AccountDAO(object):
     def get_random_account(cls):
         q = session.query(Account).filter(Account.is_login == true())
         return q.order_by(func.rand()).first()
-        # avail_count = session.query(Account).fi
+
+    @classmethod
+    def commit(cls):
+        session.commit()
 
 
 def create_db():

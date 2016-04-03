@@ -17,15 +17,19 @@ class Spider(object):
         assert isinstance(account, Account)
         self.account = account
         self.s = requests.session()
-        self.session_set_cookie(session=self.s,
+        self.set_session_cookie(session=self.s,
                                 cookies=account.cookies)
         self.s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.110 Safari/537.36'
+        self.referer = ''
+
+     def __del__(self):
+        slef.save_cookies()
 
     def __repr__(self):
         return "<Spider: %s>" % self.account.email
 
     @classmethod
-    def session_set_cookie(cls, session, cookies):
+    def set_session_cookie(cls, session, cookies):
         cookies = json.loads(cookies)
         for cookie in cookies:
             # domain expiry httpOnly name path secure
@@ -49,6 +53,10 @@ class Spider(object):
                 expires=cookie.expires
             ))
         return cookies
+
+    def save_cookies(slef):
+        slef.account.cookies = json.dumps(slef.get_session_cookies(slef.s))
+        AccountDAO.commit()
 
     @classmethod
     def embed_html_iter(cls, resp):
@@ -133,8 +141,9 @@ class Spider(object):
         return resp
 
     def fetch(self, url, referer=None):
-        resp = self.s.get(url=url)
-
+        if referer is None:
+            referer = self.referer
+        resp = self.s.get(url=url, headers={'Referer': referer})
         while True:
             new_url, reason = self.check_redirect(resp)
             if new_url:  # redierct
@@ -149,6 +158,7 @@ class Spider(object):
                     logging.info('Fetch: elogin Failed')
                 continue
             break
+        self.referer = resp.url
         return resp
 
     def fetch_weibo(self, user_id, weibo_id):
