@@ -3,6 +3,7 @@
 import os
 import sys
 import argparse
+import logging
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(BASE_DIR, 'weibo_spider'))
@@ -28,6 +29,8 @@ def main():
     parser = get_praser()
     args = parser.parse_args()
     if args.subcommand == 'shell':
+        logging.basicConfig(stream=sys.stdout, level=logging.INFO,
+                            format='[%(asctime)s %(levelname)s] %(message)s')
         import IPython
         IPython.embed()
     elif args.subcommand == 'login':

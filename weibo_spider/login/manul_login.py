@@ -3,7 +3,7 @@
 # @Author: Comzyh
 # @Date:   2016-01-23 22:02:48
 # @Last Modified by:   Comzyh
-# @Last Modified time: 2016-03-06 22:04:25
+# @Last Modified time: 2016-04-04 02:54:20
 
 import datetime
 import json
@@ -48,12 +48,19 @@ class LoginExecuter(object):
             normal_tab = WebDriverWait(self.browser, 40).until(
                 expected_conditions.presence_of_element_located((By.CLASS_NAME, "gn_name")))
             print('login successful')
+            cookies = self.browser.get_cookies()
+            # self.browser.get("http://passport.weibo.com/js/visitor/mini.js")
+            self.browser.get("https://passport.weibo.com/visitor/")
+            for cookie in self.browser.get_cookies():
+                print cookie['domain']
+                if cookie['domain'].find('passport.weibo.com') != -1:
+                    cookies.append(cookie)
         except Exception, e:
             # raise e
             print e
             return None
         else:
-            return self.browser.get_cookies()
+            return cookies
 
 
 def import_account_from_file(filename):
