@@ -166,7 +166,7 @@ class Spider(object):
     def fetch_weibo(self, user_id, weibo_id):
         pass
 
-    def fetch_serach(self, keyword, page=1):
+    def fetch_search(self, keyword, page=1):
         quote_keyword = urllib.quote(urllib.quote(keyword))  # quote 两次
         if page == 1:
             url = 'http://s.weibo.com/weibo/{quote}&nodup=1'.format(quote=quote_keyword)

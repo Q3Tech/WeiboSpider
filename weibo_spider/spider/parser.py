@@ -1,8 +1,18 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import re
 import json
 from bs4 import BeautifulSoup
+
+
+def ensure_soup(func):
+    """
+    装饰器，如果soup本身是unicode或者str，将其转变成soup
+    """
+    def wrapper(self, soup, *args, **kwargs):
+        if isinstance(soup, str) or isinstance(soup, unicode):
+            soup = BeautifulSoup(soup, 'html.parser')
+        return func(self=self, soup=soup, *args, **kwargs)
+    return wrapper
 
 
 class Parser(object):
@@ -62,22 +72,56 @@ class Parser(object):
         for g in self._embed_html_pattern.finditer(text):
             yield json.loads('"' + g.group(1) + '"')
 
-    def parse_weibo(self, text):
+    @ensure_soup
+    def parse_weibo(self, soup):
         weibos = []
-        soup = BeautifulSoup(text, 'html.parser')
         for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
             weibo = {}
             comment_txt = item.find(class_='comment_txt')
             weibo['comment_txt'] = comment_txt.text
+
+            # 时间，链接，设备
             feed_from = item.findAll(class_='feed_from')[-1]
-            time_and_url = feed_from.find(date=True)
-            pageurl = time_and_url.attrs['href']
+            pageurl, timestamp, device = self.parse_time_url_device(feed_from)
             weibo['pageurl'] = pageurl
             user_id, mid = self.parse_weibo_url(pageurl)
             weibo['user_id'] = user_id
             weibo['mid'] = mid
-            weibo['timestamp'] = int(time_and_url.attrs['date'])
-            print comment_txt.text.encode('utf-8')
-            print weibo
+            weibo['timestamp'] = timestamp
+
+            # 转发，评论，赞
+            feed_action = item.findAll(class_='feed_action')[-1]
+            share, comment, like = self.parse_share_comment_like(feed_action)
+            weibo['share'] = share
+            weibo['comment'] = comment
+            weibo['like'] = like
+
             weibos.append(weibo)
+            self.last_text = soup
+
         return weibos
+
+    @ensure_soup
+    def parse_time_url_device(self, soup):
+        """
+        return timestamp, url, device
+        """
+        time_and_url = soup.find(date=True)
+        pageurl = time_and_url.attrs['href']
+        timestamp = int(time_and_url.attrs['date'])
+        device = soup.findAll('a')[1].text
+        return pageurl, timestamp, device
+
+    @ensure_soup
+    def parse_share_comment_like(self, soup):
+        """
+        ensure: contain 3 or li
+        return share, comment, like
+        """
+        def soup_to_num(element):
+            element = re.search('\d+', element.text)
+            return 0 if not element else int(element.group(0))
+        lis = soup.findAll('li')
+        if len(lis) > 3:
+            lis = lis[-3:]
+        return soup_to_num(lis[0]), soup_to_num(lis[1]), soup_to_num(lis[2])
