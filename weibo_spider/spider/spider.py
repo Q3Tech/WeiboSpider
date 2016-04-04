@@ -9,6 +9,7 @@ import random
 import urllib
 from db.db_engine import Account
 from db.db_engine import AccountDAO
+from parser import Parser
 
 
 class Spider(object):
@@ -19,11 +20,14 @@ class Spider(object):
         self.s = requests.session()
         self.set_session_cookie(session=self.s,
                                 cookies=account.cookies)
-        self.s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.110 Safari/537.36'
+        self.s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; WOW64) '\
+            'AppleWebKit/537.36 \(KHTML, like Gecko) Chrome/49.0.2623.110 Safari/537.36'
         self.referer = ''
+        self.parser = Parser()
 
-     def __del__(self):
-        slef.save_cookies()
+    def __del__(self):
+        self.save_cookies()
+        logging.info('Destory spider {email}.'.format(email=self.account.email))
 
     def __repr__(self):
         return "<Spider: %s>" % self.account.email
@@ -59,12 +63,6 @@ class Spider(object):
         AccountDAO.commit()
 
     @classmethod
-    def embed_html_iter(cls, resp):
-        html_in_js_pattern = re.compile(r'\"html\":\"((?:[^"\\]|\\.)*)\"')
-        for g in html_in_js_pattern.finditer(resp.text):
-            yield json.loads('"' + g.group(1) + '"')
-
-    @classmethod
     def check_avail(cls, resp):
         return True
 
@@ -89,6 +87,7 @@ class Spider(object):
 
     def relogin(self, former_resp):
         """
+        处理长时间未登录后登陆的流程
         """
         def encodeURIComponent(s):
             return urllib.quote(str(s))
@@ -141,6 +140,9 @@ class Spider(object):
         return resp
 
     def fetch(self, url, referer=None):
+        """
+        抓取一个页面，处理各种需要的跳转和重登录
+        """
         if referer is None:
             referer = self.referer
         resp = self.s.get(url=url, headers={'Referer': referer})
@@ -164,8 +166,19 @@ class Spider(object):
     def fetch_weibo(self, user_id, weibo_id):
         pass
 
-    def fetch_serach(self, keyword):
-        pass
+    def fetch_serach(self, keyword, page=1):
+        quote_keyword = urllib.quote(urllib.quote(keyword))  # quote 两次
+        if page == 1:
+            url = 'http://s.weibo.com/weibo/{quote}&nodup=1'.format(quote=quote_keyword)
+            referer = 'http://s.weibo.com/weibo/{quote}?topnav=1&wvr=6'.format(quote=quote_keyword)
+        else:
+            url = 'http://s.weibo.com/weibo/{quote}&nodup=1&page={page}'.format(quote=quote_keyword, page=page)
+            referer = 'http://s.weibo.com/weibo/{quote}&nodup=1&page={page}'.format(quote=quote_keyword, page=page - 1)
+        resp = self.fetch(url=url, referer=referer)
+        weibos = []
+        for embed_html in self.parser.embed_html_iter(resp.text):
+            weibos += self.parser.parse_weibo(embed_html)
+        return weibos
 
     @classmethod
     def save_to_file(cls, resp, filename):

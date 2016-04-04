@@ -3,11 +3,11 @@
 # @Author: Comzyh
 # @Date:   2016-01-23 22:02:48
 # @Last Modified by:   Comzyh
-# @Last Modified time: 2016-04-04 02:54:20
+# @Last Modified time: 2016-04-04 15:44:37
 
 import datetime
 import json
-
+import logging
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -55,9 +55,8 @@ class LoginExecuter(object):
                 print cookie['domain']
                 if cookie['domain'].find('passport.weibo.com') != -1:
                     cookies.append(cookie)
-        except Exception, e:
-            # raise e
-            print e
+        except Exception:
+            logging.exception('Login failed')
             return None
         else:
             return cookies
