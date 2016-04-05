@@ -197,30 +197,43 @@ class Spider(object):
         main_url_parsed = urlparse.urlparse(str(resp.url))
         params_main = urlparse.parse_qs(main_url_parsed.query)
         params_main['script_uri'] = main_url_parsed.path
-        _weibos, lazyload = self.parser.parse_topic_result(resp.text)
-        weibos += _weibos
-        # fetch next (Ajax)
-        url = 'http://weibo.com/p/aj/v6/mblog/mbloglist'
-        params = {
-            'ajwvr': 6,
-            'domain': domain,
-            'id': page_id,
-            'pl_name': 'Pl_Third_App__9',
-            'pagebar': 0,
-            'domain_op': domain,
-            '__rnd': int(time.time() * 1000),
-            'feed_type': 1
-        }
-        params.update(params_main)
-        params.update(lazyload['action-data'])
-        params['page'] = params.get('page', 1)
-        params['pre_page'] = params.get('pre_page', params['page'])
-        resp = self.s.get(url=url, params=params, headers={
-            'X-Requested-With': 'XMLHttpRequest',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Referer': referer
-        })
-        return resp
+
+        resps = []
+        resps.append(resp)
+        resp_is_json = False
+        pagebar = 0
+        while True:
+            _weibos, lazyload = self.parser.parse_topic_result(resp.text, is_json=resp_is_json)
+            if lazyload is None:
+                break
+            weibos += _weibos
+            # fetch next (Ajax)
+            url = 'http://weibo.com/p/aj/v6/mblog/mbloglist'
+            params = {
+                'ajwvr': 6,
+                'domain': domain,
+                'id': page_id,
+                'pl_name': 'Pl_Third_App__9',
+                'pagebar': pagebar,  # 是否显示翻页
+                'domain_op': domain,
+                '__rnd': int(time.time() * 1000),
+                'feed_type': 1
+            }
+            params.update(params_main)
+            params.update(lazyload['action-data'])
+            params['page'] = params.get('page', 1)
+            params['pre_page'] = params.get('pre_page', params['page'])
+            logging.info('Topic lazyload:')
+            print params
+            resp = self.s.get(url=url, params=params, headers={
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Referer': referer
+            })
+            resp_is_json = True
+            pagebar += 1
+            resps.append(resp)
+        return resps
 
     @classmethod
     def save_to_file(cls, resp, filename):

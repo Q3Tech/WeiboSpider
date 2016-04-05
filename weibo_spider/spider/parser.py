@@ -139,14 +139,22 @@ class Parser(object):
         return {
             'action-data': urlparse.parse_qs(soup.attrs['action-data'])
         }
-    def parse_topic_result(self, text):
+
+    def parse_topic_result(self, text, is_json):
         """
         return weibos, lazyload
         """
         lazyload = None
-        for embed_html in self.embed_html_iter(text):
+
+        if is_json:
+            embed_html = json.loads(text)['data']
             soup = BeautifulSoup(embed_html, 'html.parser')
             lazyload = soup.find('div', attrs={'node-type': 'lazyload'}) or lazyload
+        else:
+            for embed_html in self.embed_html_iter(text):
+                soup = BeautifulSoup(embed_html, 'html.parser')
+                lazyload = soup.find('div', attrs={'node-type': 'lazyload'}) or lazyload
         weibos = []
-        lazyload = self.parse_lazyload(lazyload)
+        if lazyload:
+            lazyload = self.parse_lazyload(lazyload)
         return weibos, lazyload
