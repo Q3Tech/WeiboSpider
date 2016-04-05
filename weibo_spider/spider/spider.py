@@ -185,57 +185,68 @@ class Spider(object):
             weibos += self.parser.parse_search_result(embed_html)
         return weibos
 
-    def fetch_topic(self, keyword):
+    def fetch_topic_iter(self, keyword):
         if isinstance(keyword, unicode):
             keyword = keyword.encode('utf-8')
         weibos = []
         url = 'http://huati.weibo.com/k/{quote}?from=501'.format(quote=urllib.quote(keyword))
-        resp = self.fetch(url=url)
-
-        # extract params
-        domain = re.search(r'\$CONFIG\[\'domain\'\]=\'(\d+)\';', resp.text).group(1)
-        page_id = re.search(r'\$CONFIG\[\'page_id\'\]=\'(\w+)\';', resp.text).group(1)
-        referer = resp.url
-        main_url_parsed = urlparse.urlparse(str(resp.url))
-        params_main = urlparse.parse_qs(main_url_parsed.query)
-        params_main['script_uri'] = main_url_parsed.path
-
-        resps = []
-        resps.append(resp)
-        resp_is_json = False
-        pagebar = 0
+        page = 0
+        referer = None
         while True:
-            _weibos, lazyload = self.parser.parse_topic_result(resp.text, is_json=resp_is_json)
-            if lazyload is None:
-                break
-            weibos += _weibos
-            # fetch next (Ajax)
-            url = 'http://weibo.com/p/aj/v6/mblog/mbloglist'
-            params = {
-                'ajwvr': 6,
-                'domain': domain,
-                'id': page_id,
-                'pl_name': 'Pl_Third_App__9',
-                'pagebar': pagebar,  # 是否显示翻页
-                'domain_op': domain,
-                '__rnd': int(time.time() * 1000),
-                'feed_type': 1
-            }
-            params.update(params_main)
-            params.update(lazyload['action-data'])
-            params['page'] = params.get('page', 1)
-            params['pre_page'] = params.get('pre_page', params['page'])
-            logging.info('Topic lazyload:')
-            print params
-            resp = self.s.get(url=url, params=params, headers={
-                'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Referer': referer
-            })
-            resp_is_json = True
-            pagebar += 1
+            page += 1
+            logging.info('Topic: fetching page {page}'.format(page=page))
+            if not referer:
+                resp = self.fetch(url=url)
+            else:
+                resp = self.fetch(url=url, referer=referer)
+            # extract params
+            domain = re.search(r'\$CONFIG\[\'domain\'\]=\'(\d+)\';', resp.text).group(1)
+            page_id = re.search(r'\$CONFIG\[\'page_id\'\]=\'(\w+)\';', resp.text).group(1)
+            referer = resp.url
+            main_url_parsed = urlparse.urlparse(str(resp.url))
+            params_main = urlparse.parse_qs(main_url_parsed.query)
+            params_main['script_uri'] = main_url_parsed.path
+
+            resps = []
             resps.append(resp)
-        return weibos, resps
+            resp_is_json = False
+            pagebar = 0
+            while True:
+                _weibos, lazyload, next_url = self.parser.parse_topic_result(resp.text, is_json=resp_is_json)
+                if lazyload is None:
+                    break
+                weibos += _weibos
+                # fetch next (Ajax)
+                url = 'http://weibo.com/p/aj/v6/mblog/mbloglist'
+                params = {
+                    'ajwvr': 6,
+                    'domain': domain,
+                    'id': page_id,
+                    'pl_name': 'Pl_Third_App__9',
+                    'pagebar': pagebar,  # 是否显示翻页
+                    'domain_op': domain,
+                    '__rnd': int(time.time() * 1000),
+                    'feed_type': 1
+                }
+                params.update(params_main)
+                params.update(lazyload['action-data'])
+                params['page'] = params.get('page', 1)
+                params['pre_page'] = params.get('pre_page', params['page'])
+                logging.info('Topic lazyload:')
+                print params
+                resp = self.s.get(url=url, params=params, headers={
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Referer': referer
+                })
+                resp_is_json = True
+                pagebar += 1
+                resps.append(resp)
+            yield weibos
+            if next_url:
+                url = urlparse.urljoin(referer, next_url)
+            else:
+                break
 
     @classmethod
     def save_to_file(cls, resp, filename):

@@ -3,6 +3,7 @@
 import re
 import json
 import urlparse
+import datetime
 
 from functools import wraps
 
@@ -84,6 +85,8 @@ class Parser(object):
         for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
             weibo = {}
             comment_txt = item.find(class_='comment_txt')
+            location = self.parse_location(comment_txt, decompose=True)
+            weibo['location'] = location
             weibo['text'] = comment_txt.text
 
             # 链接,时间,设备
@@ -115,7 +118,8 @@ class Parser(object):
         time_and_url = soup.find(date=True)
         pageurl = time_and_url.attrs['href']
         timestamp = int(time_and_url.attrs['date'])
-        device = soup.findAll('a')[1].text
+        links = soup.findAll('a')
+        device = links[1].text if len(links) > 1 else None
         return pageurl, timestamp, device
 
     @ensure_soup
@@ -147,8 +151,9 @@ class Parser(object):
             weibo = {}
 
             wb_text = item.find(class_='WB_text')
+            location = self.parse_location(wb_text, decompose=True)
+            weibo['location'] = location
             weibo['text'] = wb_text.text
-            print wb_text.text
 
             # 链接,时间,设备
             wb_from = item.find(class_='WB_from')
@@ -170,25 +175,69 @@ class Parser(object):
                 'comment': comment,
                 'like': like
             })
+            print self.pretty_weibo(weibo) + '\n'
             weibos.append(weibo)
         return weibos
+
+    @ensure_soup
+    def parse_location(self, soup, decompose=False):
+        icon = soup.find(class_='ficon_cd_place')
+        if not icon:
+            return None
+        link = icon.parent
+        location = link.attrs['title']
+        if decompose:
+            link.decompose()
+        return location
+
 
     def parse_topic_result(self, text, is_json):
         """
         return weibos, lazyload
         """
         lazyload = None
+        next_url = None
         weibos = []
         if is_json:
-            embed_html = json.loads(text)['data']
+            embed_html_iter = [json.loads(text)['data']]
+        else:
+            embed_html_iter = self.embed_html_iter(text)
+
+        for embed_html in embed_html_iter:
             soup = BeautifulSoup(embed_html, 'html.parser')
             lazyload = soup.find('div', attrs={'node-type': 'lazyload'}) or lazyload
+            _, _, next_page = self.split_pages_bar(soup)
+            if next_page:
+                next_url = next_page.attrs['href']
             weibos += self.extract_topic_weibo(soup)
-        else:
-            for embed_html in self.embed_html_iter(text):
-                soup = BeautifulSoup(embed_html, 'html.parser')
-                lazyload = soup.find('div', attrs={'node-type': 'lazyload'}) or lazyload
-                weibos += self.extract_topic_weibo(soup)
         if lazyload:
             lazyload = self.parse_lazyload(lazyload)
-        return weibos, lazyload
+        return weibos, lazyload, next_url
+
+    @ensure_soup
+    def split_pages_bar(self, soup):
+        """
+        拆分上一页， 页list， 下一页
+        """
+        w_pages = soup.find('div', class_='W_pages')
+        if not w_pages:
+            return None, None, None
+        prev_page = w_pages.find('a', class_='prev')
+        page_list = w_pages.find('span', class_='list')
+        next_page = w_pages.find('a', class_='next')
+        return prev_page, page_list, next_page
+
+    @classmethod
+    def pretty_weibo(cls, weibo):
+        r = u''
+        r += datetime.datetime.fromtimestamp(weibo['timestamp'] / 1000).strftime("%Y-%m-%d %H:%M:%S")
+        if weibo['location'] and len(weibo['location']):
+            r += u' @{location}'.format(location=weibo['location'])
+        if weibo['device'] and len(weibo['device']):
+            r += u' By {device}'.format(device=weibo['device'])
+        r += '\n'
+        r += weibo['text']
+        r += '\n'
+        r += '{share} share | {comment} comment | {like} like'.format(
+            share=weibo['share'], comment=weibo['comment'], like=weibo['like'])
+        return r
