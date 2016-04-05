@@ -7,6 +7,8 @@ import requests
 import logging
 import random
 import urllib
+import time
+import urlparse
 from db.db_engine import Account
 from db.db_engine import AccountDAO
 from parser import Parser
@@ -158,6 +160,7 @@ class Spider(object):
                 resp = self.relogin(resp)
                 if not resp:
                     logging.info('Fetch: elogin Failed')
+                resp = self.s.get(url=url, headers={'Referer': referer})
                 continue
             break
         self.referer = resp.url
@@ -177,8 +180,47 @@ class Spider(object):
         resp = self.fetch(url=url, referer=referer)
         weibos = []
         for embed_html in self.parser.embed_html_iter(resp.text):
-            weibos += self.parser.parse_weibo(embed_html)
+            weibos += self.parser.parse_search_result(embed_html)
         return weibos
+
+    def fetch_topic(self, keyword):
+        if isinstance(keyword, unicode):
+            keyword = keyword.encode('utf-8')
+        weibos = []
+        url = 'http://huati.weibo.com/k/{quote}?from=501'.format(quote=urllib.quote(keyword))
+        resp = self.fetch(url=url)
+
+        # extract params
+        domain = re.search(r'\$CONFIG\[\'domain\'\]=\'(\d+)\';', resp.text).group(1)
+        page_id = re.search(r'\$CONFIG\[\'page_id\'\]=\'(\w+)\';', resp.text).group(1)
+        referer = resp.url
+        main_url_parsed = urlparse.urlparse(str(resp.url))
+        params_main = urlparse.parse_qs(main_url_parsed.query)
+        params_main['script_uri'] = main_url_parsed.path
+        _weibos, lazyload = self.parser.parse_topic_result(resp.text)
+        weibos += _weibos
+        # fetch next (Ajax)
+        url = 'http://weibo.com/p/aj/v6/mblog/mbloglist'
+        params = {
+            'ajwvr': 6,
+            'domain': domain,
+            'id': page_id,
+            'pl_name': 'Pl_Third_App__9',
+            'pagebar': 0,
+            'domain_op': domain,
+            '__rnd': int(time.time() * 1000),
+            'feed_type': 1
+        }
+        params.update(params_main)
+        params.update(lazyload['action-data'])
+        params['page'] = params.get('page', 1)
+        params['pre_page'] = params.get('pre_page', params['page'])
+        resp = self.s.get(url=url, params=params, headers={
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Referer': referer
+        })
+        return resp
 
     @classmethod
     def save_to_file(cls, resp, filename):

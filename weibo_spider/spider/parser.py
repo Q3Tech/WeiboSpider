@@ -1,6 +1,11 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import re
 import json
+import urlparse
+
+from functools import wraps
+
 from bs4 import BeautifulSoup
 
 
@@ -8,6 +13,7 @@ def ensure_soup(func):
     """
     装饰器，如果soup本身是unicode或者str，将其转变成soup
     """
+    @wraps(func)
     def wrapper(self, soup, *args, **kwargs):
         if isinstance(soup, str) or isinstance(soup, unicode):
             soup = BeautifulSoup(soup, 'html.parser')
@@ -73,7 +79,7 @@ class Parser(object):
             yield json.loads('"' + g.group(1) + '"')
 
     @ensure_soup
-    def parse_weibo(self, soup):
+    def parse_search_result(self, soup):
         weibos = []
         for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
             weibo = {}
@@ -125,3 +131,22 @@ class Parser(object):
         if len(lis) > 3:
             lis = lis[-3:]
         return soup_to_num(lis[0]), soup_to_num(lis[1]), soup_to_num(lis[2])
+
+    @ensure_soup
+    def parse_lazyload(self, soup):
+        """
+        """
+        return {
+            'action-data': urlparse.parse_qs(soup.attrs['action-data'])
+        }
+    def parse_topic_result(self, text):
+        """
+        return weibos, lazyload
+        """
+        lazyload = None
+        for embed_html in self.embed_html_iter(text):
+            soup = BeautifulSoup(embed_html, 'html.parser')
+            lazyload = soup.find('div', attrs={'node-type': 'lazyload'}) or lazyload
+        weibos = []
+        lazyload = self.parse_lazyload(lazyload)
+        return weibos, lazyload
