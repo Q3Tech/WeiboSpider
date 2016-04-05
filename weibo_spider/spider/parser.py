@@ -84,9 +84,9 @@ class Parser(object):
         for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
             weibo = {}
             comment_txt = item.find(class_='comment_txt')
-            weibo['comment_txt'] = comment_txt.text
+            weibo['text'] = comment_txt.text
 
-            # 时间，链接，设备
+            # 链接,时间,设备
             feed_from = item.findAll(class_='feed_from')[-1]
             pageurl, timestamp, device = self.parse_time_url_device(feed_from)
             weibo['pageurl'] = pageurl
@@ -140,21 +140,55 @@ class Parser(object):
             'action-data': urlparse.parse_qs(soup.attrs['action-data'])
         }
 
+    @ensure_soup
+    def extract_topic_weibo(self, soup):
+        weibos = []
+        for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
+            weibo = {}
+
+            wb_text = item.find(class_='WB_text')
+            weibo['text'] = wb_text.text
+            print wb_text.text
+
+            # 链接,时间,设备
+            wb_from = item.find(class_='WB_from')
+            pageurl, timestamp, device = self.parse_time_url_device(wb_from)
+            user_id, mid = self.parse_weibo_url(pageurl)
+            weibo.update({
+                'pageurl': pageurl,
+                'timestamp': timestamp,
+                'device': device,
+                'user_id': user_id,
+                'mid': mid
+            })
+            wb_handle = item.findAll(class_='WB_handle')[-1]
+
+            # 转发，评论，赞
+            share, comment, like = self.parse_share_comment_like(wb_handle)
+            weibo.update({
+                'share': share,
+                'comment': comment,
+                'like': like
+            })
+            weibos.append(weibo)
+        return weibos
+
     def parse_topic_result(self, text, is_json):
         """
         return weibos, lazyload
         """
         lazyload = None
-
+        weibos = []
         if is_json:
             embed_html = json.loads(text)['data']
             soup = BeautifulSoup(embed_html, 'html.parser')
             lazyload = soup.find('div', attrs={'node-type': 'lazyload'}) or lazyload
+            weibos += self.extract_topic_weibo(soup)
         else:
             for embed_html in self.embed_html_iter(text):
                 soup = BeautifulSoup(embed_html, 'html.parser')
                 lazyload = soup.find('div', attrs={'node-type': 'lazyload'}) or lazyload
-        weibos = []
+                weibos += self.extract_topic_weibo(soup)
         if lazyload:
             lazyload = self.parse_lazyload(lazyload)
         return weibos, lazyload

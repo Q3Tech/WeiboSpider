@@ -120,8 +120,8 @@ class Spider(object):
             params += "&returntype=META" + "&gateway=1&savestate=" + encodeURIComponent(savestate) + requrl
             url = r'http://login.sina.com.cn/sso/login.php?' + params
         else:  # cross_domain
-            return False
             logging.info('cross_domain')
+            return False
             url = "http://login.sina.com.cn/visitor/visitor?a=crossdomain&cb=return_back&s="
             url += encodeURIComponent(json_resp["data"]["sub"])
             url += "&sp=" + encodeURIComponent(json_resp["data"]["subp"])
@@ -159,7 +159,9 @@ class Spider(object):
                 logging.info("Fetching encounter relogin:\n")
                 resp = self.relogin(resp)
                 if not resp:
-                    logging.info('Fetch: elogin Failed')
+                    logging.info('Fetch: relogin Failed')
+                    break
+                self.save_cookies()
                 resp = self.s.get(url=url, headers={'Referer': referer})
                 continue
             break
@@ -233,7 +235,7 @@ class Spider(object):
             resp_is_json = True
             pagebar += 1
             resps.append(resp)
-        return resps
+        return weibos, resps
 
     @classmethod
     def save_to_file(cls, resp, filename):
