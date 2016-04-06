@@ -201,7 +201,7 @@ class Spider(object):
             resp = self.fetch(url=url, referer=referer)
             _weibos, _, next_url = self.parser.parse_search_result(resp.text)
             weibos += _weibos
-            yield weibos, page, next_url is not None, resp
+            yield weibos, page, next_url is not None
             if not next_url:
                 break
 
