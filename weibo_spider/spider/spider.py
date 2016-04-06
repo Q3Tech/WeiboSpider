@@ -180,20 +180,40 @@ class Spider(object):
             url = 'http://s.weibo.com/weibo/{quote}&nodup=1&page={page}'.format(quote=quote_keyword, page=page)
             referer = 'http://s.weibo.com/weibo/{quote}&nodup=1&page={page}'.format(quote=quote_keyword, page=page - 1)
         resp = self.fetch(url=url, referer=referer)
-        weibos = []
-        for embed_html in self.parser.embed_html_iter(resp.text):
-            weibos += self.parser.parse_search_result(embed_html)
+        weibos, _, _ = self.parser.parse_search_result(resp.text)
         return weibos
+
+    def fetch_search_iter(self, keyword, start_page=1):
+        quote_keyword = urllib.quote(urllib.quote(keyword))  # quote 两次
+        page = start_page - 1
+        assert(page >= 0)
+        next_url = None
+        while True:
+            page += 1
+            weibos = []
+            logging.info('Fetching search page {page}'.format(page=page))
+            if page == 1:
+                url = 'http://s.weibo.com/weibo/{quote}&nodup=1'.format(quote=quote_keyword)
+                referer = 'http://s.weibo.com/weibo/{quote}?topnav=1&wvr=6'.format(quote=quote_keyword)
+            else:
+                url = 'http://s.weibo.com/weibo/{quote}&nodup=1&page={page}'.format(quote=quote_keyword, page=page)
+                referer = 'http://s.weibo.com/weibo/{quote}&nodup=1&page={page}'.format(quote=quote_keyword, page=page - 1)
+            resp = self.fetch(url=url, referer=referer)
+            _weibos, _, next_url = self.parser.parse_search_result(resp.text)
+            weibos += _weibos
+            yield weibos, page, next_url is not None, resp
+            if not next_url:
+                break
 
     def fetch_topic_iter(self, keyword):
         if isinstance(keyword, unicode):
             keyword = keyword.encode('utf-8')
-        weibos = []
         url = 'http://huati.weibo.com/k/{quote}?from=501'.format(quote=urllib.quote(keyword))
         page = 0
         referer = None
         while True:
             page += 1
+            weibos = []
             logging.info('Topic: fetching page {page}'.format(page=page))
             if not referer:
                 resp = self.fetch(url=url)
@@ -213,9 +233,9 @@ class Spider(object):
             pagebar = 0
             while True:
                 _weibos, lazyload, next_url = self.parser.parse_topic_result(resp.text, is_json=resp_is_json)
+                weibos += _weibos
                 if lazyload is None:
                     break
-                weibos += _weibos
                 # fetch next (Ajax)
                 url = 'http://weibo.com/p/aj/v6/mblog/mbloglist'
                 params = {
@@ -242,7 +262,7 @@ class Spider(object):
                 resp_is_json = True
                 pagebar += 1
                 resps.append(resp)
-            yield weibos
+            yield weibos, page, next_url is not None
             if next_url:
                 url = urlparse.urljoin(referer, next_url)
             else:

@@ -103,38 +103,6 @@ class Parser(object):
             yield json.loads('"' + g.group(1) + '"')
 
     @ensure_soup
-    def parse_search_result(self, soup):
-        u"""返回搜索页中的所有微博."""
-        weibos = []
-        for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
-            weibo = {}
-            comment_txt = item.find(class_='comment_txt')
-            location = self.parse_location(comment_txt, decompose=True)
-            weibo['location'] = location
-            weibo['text'] = comment_txt.text
-
-            # 链接,时间,设备
-            feed_from = item.findAll(class_='feed_from')[-1]
-            pageurl, timestamp, device = self.parse_time_url_device(feed_from)
-            weibo['pageurl'] = pageurl
-            user_id, mid = self.parse_weibo_url(pageurl)
-            weibo['user_id'] = user_id
-            weibo['mid'] = mid
-            weibo['timestamp'] = timestamp
-
-            # 转发,评论,赞
-            feed_action = item.findAll(class_='feed_action')[-1]
-            share, comment, like = self.parse_share_comment_like(feed_action)
-            weibo['share'] = share
-            weibo['comment'] = comment
-            weibo['like'] = like
-
-            weibos.append(weibo)
-            self.last_text = soup
-
-        return weibos
-
-    @ensure_soup
     def parse_time_url_device(self, soup):
         u"""
         在时间和设备行返回微博链接,发布时间戳,发布设备.
@@ -176,6 +144,42 @@ class Parser(object):
         return {
             'action-data': urlparse.parse_qs(soup.attrs['action-data'])
         }
+
+    @ensure_soup
+    def extract_search_weibo(self, soup):
+        u"""返回搜索页中的所有微博."""
+        weibos = []
+        for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
+            weibo = {}
+            comment_txt = item.find(class_='comment_txt')
+            location = self.parse_location(comment_txt, decompose=True)
+            weibo['location'] = location
+            weibo['text'] = comment_txt.text
+
+            # 链接,时间,设备
+            feed_from = item.findAll(class_='feed_from')[-1]
+            pageurl, timestamp, device = self.parse_time_url_device(feed_from)
+            user_id, mid = self.parse_weibo_url(pageurl)
+            weibo.update({
+                'pageurl': pageurl,
+                'timestamp': timestamp,
+                'device': device,
+                'user_id': user_id,
+                'mid': mid
+            })
+
+            # 转发,评论,赞
+            feed_action = item.findAll(class_='feed_action')[-1]
+            share, comment, like = self.parse_share_comment_like(feed_action)
+            weibo.update({
+                'share': share,
+                'comment': comment,
+                'like': like
+            })
+
+            print self.pretty_weibo(weibo) + '\n'
+            weibos.append(weibo)
+        return weibos
 
     @ensure_soup
     def extract_topic_weibo(self, soup):
@@ -233,6 +237,17 @@ class Parser(object):
             link.decompose()
         return location
 
+    @ensure_soup
+    def split_pages_bar(self, soup):
+        u"""拆分上一页, 页list, 下一页."""
+        w_pages = soup.find('div', class_='W_pages')
+        if not w_pages:
+            return None, None, None
+        prev_page = w_pages.find('a', class_='prev')
+        page_list = w_pages.find('span', class_='list')
+        next_page = w_pages.find('a', class_='next')
+        return prev_page, page_list, next_page
+
     def parse_topic_result(self, text, is_json):
         u"""
         处理从topic 页面抓取的HTML，包括Ajax方法取得的部分.
@@ -242,7 +257,7 @@ class Parser(object):
         返回：weibos, lazyload, next_url
         weibos: 微博数组
         lazyload: lazyload 的 action-data 数据（如果有）
-        next_url: 下一页的url （如果有）
+        next_url: 下一页的url （如果有）（url一般是相对路径）
         """
         lazyload = None
         next_url = None
@@ -263,16 +278,24 @@ class Parser(object):
             lazyload = self.parse_lazyload(lazyload)
         return weibos, lazyload, next_url
 
-    @ensure_soup
-    def split_pages_bar(self, soup):
-        u"""拆分上一页, 页list, 下一页."""
-        w_pages = soup.find('div', class_='W_pages')
-        if not w_pages:
-            return None, None, None
-        prev_page = w_pages.find('a', class_='prev')
-        page_list = w_pages.find('span', class_='list')
-        next_page = w_pages.find('a', class_='next')
-        return prev_page, page_list, next_page
+    def parse_search_result(self, text):
+        u"""
+        解析search返回的html.
+
+        返回：weibos, lazyload, next_url
+        weibos: 微博数组
+        lazyload: 固定为 None
+        next_url: 下一页的url （如果有）（url一般是相对路径）
+        """
+        weibos = []
+        next_url = ""
+        for embed_html in self.embed_html_iter(text):
+            soup = BeautifulSoup(embed_html, 'html.parser')
+            _, _, next_page = self.split_pages_bar(soup)
+            if next_page:
+                next_url = next_page.attrs['href']
+            weibos += self.extract_search_weibo(soup)
+        return weibos, None, next_url
 
     @classmethod
     def pretty_weibo(cls, weibo):
