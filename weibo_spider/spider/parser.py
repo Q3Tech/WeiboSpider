@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+u"""用于抓取结果和中间结果的解析的模块."""
 import re
 import json
 import urlparse
@@ -11,9 +12,7 @@ from bs4 import BeautifulSoup
 
 
 def ensure_soup(func):
-    """
-    装饰器，如果soup本身是unicode或者str，将其转变成soup
-    """
+    u"""装饰器,如果soup本身是unicode或者str,将其转变成soup."""
     @wraps(func)
     def wrapper(self, soup, *args, **kwargs):
         if isinstance(soup, str) or isinstance(soup, unicode):
@@ -23,17 +22,18 @@ def ensure_soup(func):
 
 
 class Parser(object):
-    """
-    新浪微博HTML解析的工具
-    """
+    u"""新浪微博HTML解析类."""
+
     base62_base = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
     def __init__(self):
+        u"""Constructer."""
         self._weibo_url_pattern = re.compile(r'\/(?P<user_id>\d+)\/(?P<mid>[0-9a-zA-Z]+)')
         self._embed_html_pattern = re.compile(r'\"html\":\"((?:[^"\\]|\\.)*)\"')
 
     @classmethod
     def base62_decode(cls, text):
+        u"""将base62字符串转为10进制整数."""
         result = 0
         for c in text:
             result *= 62
@@ -43,6 +43,7 @@ class Parser(object):
 
     @classmethod
     def base62_encode(cls, num):
+        u"""将10进制整数转为 base62 字符串."""
         assert(isinstance(num, int))
         result = ''
         while num:
@@ -52,6 +53,14 @@ class Parser(object):
 
     @classmethod
     def mid_decode(cls, text):
+        u"""
+        将微博连接 mid 转为整形形式.
+
+        转换方式：从结尾开始4个字符一组,1e7进制
+        e.g.:
+        > mid_decode('z579Hz9Wr')
+        3512191498379699
+        """
         first = len(text) % 4
         result = cls.base62_decode(text[:first])
         for i in range(first, len(text), 4):
@@ -61,6 +70,7 @@ class Parser(object):
 
     @classmethod
     def mid_encode(cls, mid):
+        u"""将整形 mid 转为字符型."""
         assert(isinstance(mid, int))
         result = ''
         while mid:
@@ -69,6 +79,13 @@ class Parser(object):
         return result
 
     def parse_weibo_url(self, text):
+        u"""
+        将微博url分解为 uid 和 mid 部分.
+
+        e.g.:
+        > parse_weibo_url('http://weibo.com/1696218363/DmB4uDgQB')
+        ('1696218363', 'DmB4uDgQB')
+        """
         groups = self._weibo_url_pattern.search(text)
         if groups:
             return groups.group('user_id'), groups.group('mid')
@@ -76,11 +93,18 @@ class Parser(object):
             return None, None
 
     def embed_html_iter(self, text):
+        u"""
+        在文件中抽出内嵌在JS中的HTML.
+
+        {'xxx':'yyyy', 'html':'<embed_html>'}
+        中的<embed_html>
+        """
         for g in self._embed_html_pattern.finditer(text):
             yield json.loads('"' + g.group(1) + '"')
 
     @ensure_soup
     def parse_search_result(self, soup):
+        u"""返回搜索页中的所有微博."""
         weibos = []
         for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
             weibo = {}
@@ -98,7 +122,7 @@ class Parser(object):
             weibo['mid'] = mid
             weibo['timestamp'] = timestamp
 
-            # 转发，评论，赞
+            # 转发,评论,赞
             feed_action = item.findAll(class_='feed_action')[-1]
             share, comment, like = self.parse_share_comment_like(feed_action)
             weibo['share'] = share
@@ -112,8 +136,11 @@ class Parser(object):
 
     @ensure_soup
     def parse_time_url_device(self, soup):
-        """
-        return timestamp, url, device
+        u"""
+        在时间和设备行返回微博链接,发布时间戳,发布设备.
+
+        时间戳是整形毫秒值
+        return pageurl, timestamp, device
         """
         time_and_url = soup.find(date=True)
         pageurl = time_and_url.attrs['href']
@@ -124,8 +151,11 @@ class Parser(object):
 
     @ensure_soup
     def parse_share_comment_like(self, soup):
-        """
-        ensure: contain 3 or li
+        u"""
+        抽取转发数评论数和赞数.
+
+        要求DOM树种只有li包含数据,而且最后三个li分别为转发,评论,赞
+
         return share, comment, like
         """
         def soup_to_num(element):
@@ -138,7 +168,10 @@ class Parser(object):
 
     @ensure_soup
     def parse_lazyload(self, soup):
-        """
+        u"""
+        处理延迟加载的框(常见于话题页面).
+
+        返回其中的 action-data 的字典
         """
         return {
             'action-data': urlparse.parse_qs(soup.attrs['action-data'])
@@ -146,6 +179,11 @@ class Parser(object):
 
     @ensure_soup
     def extract_topic_weibo(self, soup):
+        u"""
+        处理从话题页面或者普通页面爬去的微博.
+
+        return 微博的数组
+        """
         weibos = []
         for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
             weibo = {}
@@ -168,7 +206,7 @@ class Parser(object):
             })
             wb_handle = item.findAll(class_='WB_handle')[-1]
 
-            # 转发，评论，赞
+            # 转发,评论,赞
             share, comment, like = self.parse_share_comment_like(wb_handle)
             weibo.update({
                 'share': share,
@@ -181,6 +219,11 @@ class Parser(object):
 
     @ensure_soup
     def parse_location(self, soup, decompose=False):
+        u"""
+        抽取位置信息.
+
+        如果 decompose=True, 则从soup中删除位置，避免打乱文本
+        """
         icon = soup.find(class_='ficon_cd_place')
         if not icon:
             return None
@@ -190,10 +233,16 @@ class Parser(object):
             link.decompose()
         return location
 
-
     def parse_topic_result(self, text, is_json):
-        """
-        return weibos, lazyload
+        u"""
+        处理从topic 页面抓取的HTML，包括Ajax方法取得的部分.
+
+        is_json = True 则认为是Ajax 数据，从其中data键中抽取HTML
+
+        返回：weibos, lazyload, next_url
+        weibos: 微博数组
+        lazyload: lazyload 的 action-data 数据（如果有）
+        next_url: 下一页的url （如果有）
         """
         lazyload = None
         next_url = None
@@ -216,9 +265,7 @@ class Parser(object):
 
     @ensure_soup
     def split_pages_bar(self, soup):
-        """
-        拆分上一页， 页list， 下一页
-        """
+        u"""拆分上一页, 页list, 下一页."""
         w_pages = soup.find('div', class_='W_pages')
         if not w_pages:
             return None, None, None
@@ -229,6 +276,7 @@ class Parser(object):
 
     @classmethod
     def pretty_weibo(cls, weibo):
+        u"""以人类可读格式格式化weibo数组."""
         r = u''
         r += datetime.datetime.fromtimestamp(weibo['timestamp'] / 1000).strftime("%Y-%m-%d %H:%M:%S")
         if weibo['location'] and len(weibo['location']):
