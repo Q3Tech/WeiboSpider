@@ -11,21 +11,31 @@ import time
 import urlparse
 from db.db_engine import Account
 from db.db_engine import AccountDAO
+from db.db_engine import RawDataDAO
 from parser import Parser
 
 
 class Spider(object):
 
-    def __init__(self, account):
+    def __init__(self, account, raw_db=None):
+        u"""
+        爬虫类， 每个使用一个账户.
+
+        account: Account 对象
+        raw_db: RawDataDAO
+        """
         assert isinstance(account, Account)
+        if raw_db:
+            assert(isinstance(raw_db, RawDataDAO))
         self.account = account
+        self.raw_db = raw_db
         self.s = requests.session()
         self.set_session_cookie(session=self.s,
                                 cookies=account.cookies)
         self.s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; WOW64) '\
             'AppleWebKit/537.36 \(KHTML, like Gecko) Chrome/49.0.2623.110 Safari/537.36'
         self.referer = ''
-        self.parser = Parser()
+        self.parser = Parser(raw_db=raw_db)
 
     def __del__(self):
         self.save_cookies()
@@ -201,7 +211,7 @@ class Spider(object):
             resp = self.fetch(url=url, referer=referer)
             _weibos, _, next_url = self.parser.parse_search_result(resp.text)
             weibos += _weibos
-            yield weibos, page, next_url is not None
+            yield weibos, page, next_url is not None, resp
             if not next_url:
                 break
 
@@ -276,5 +286,6 @@ class Spider(object):
 
 def get_random_spider():
     account = AccountDAO.get_random_account()
-    spider = Spider(account=account)
+    raw_db = RawDataDAO()
+    spider = Spider(account=account, raw_db=raw_db)
     return spider

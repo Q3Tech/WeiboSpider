@@ -26,10 +26,15 @@ class Parser(object):
 
     base62_base = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-    def __init__(self):
-        u"""Constructer."""
+    def __init__(self, raw_db=None):
+        u"""
+        Constructer.
+
+        raw_db: RawDataDAO
+        """
         self._weibo_url_pattern = re.compile(r'\/(?P<user_id>\d+)\/(?P<mid>[0-9a-zA-Z]+)')
         self._embed_html_pattern = re.compile(r'\"html\":\"((?:[^"\\]|\\.)*)\"')
+        self.raw_data_db = raw_db
 
     @classmethod
     def base62_decode(cls, text):
@@ -77,6 +82,11 @@ class Parser(object):
             result = cls.base62_encode(mid % 10000000) + result
             mid /= 10000000
         return result
+
+    def save_raw(self, mid, data):
+        u"""如果指定了RawDataDAO，则存储."""
+        if self.raw_data_db:
+            self.raw_data_db.set_raw_data(mid=mid, data=data)
 
     def parse_weibo_url(self, text):
         u"""
@@ -151,10 +161,6 @@ class Parser(object):
         weibos = []
         for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
             weibo = {}
-            comment_txt = item.find(class_='comment_txt')
-            location = self.parse_location(comment_txt, decompose=True)
-            weibo['location'] = location
-            weibo['text'] = comment_txt.text
 
             # 链接,时间,设备
             feed_from = item.findAll(class_='feed_from')[-1]
@@ -167,6 +173,7 @@ class Parser(object):
                 'user_id': user_id,
                 'mid': mid
             })
+            self.save_raw(mid, str(item)) # 在数据被破坏之前存储
 
             # 转发,评论,赞
             feed_action = item.findAll(class_='feed_action')[-1]
@@ -176,6 +183,12 @@ class Parser(object):
                 'comment': comment,
                 'like': like
             })
+
+            # 正文
+            comment_txt = item.find(class_='comment_txt')
+            location = self.parse_location(comment_txt, decompose=True) # 破坏性操作
+            weibo['location'] = location
+            weibo['text'] = comment_txt.text
 
             print self.pretty_weibo(weibo) + '\n'
             weibos.append(weibo)
@@ -192,11 +205,6 @@ class Parser(object):
         for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
             weibo = {}
 
-            wb_text = item.find(class_='WB_text')
-            location = self.parse_location(wb_text, decompose=True)
-            weibo['location'] = location
-            weibo['text'] = wb_text.text
-
             # 链接,时间,设备
             wb_from = item.find(class_='WB_from')
             pageurl, timestamp, device = self.parse_time_url_device(wb_from)
@@ -208,15 +216,23 @@ class Parser(object):
                 'user_id': user_id,
                 'mid': mid
             })
-            wb_handle = item.findAll(class_='WB_handle')[-1]
+            self.save_raw(mid, str(item))
 
             # 转发,评论,赞
+            wb_handle = item.findAll(class_='WB_handle')[-1]
             share, comment, like = self.parse_share_comment_like(wb_handle)
             weibo.update({
                 'share': share,
                 'comment': comment,
                 'like': like
             })
+
+            # 文本
+            wb_text = item.find(class_='WB_text')
+            location = self.parse_location(wb_text, decompose=True) # 破坏性操作
+            weibo['location'] = location
+            weibo['text'] = wb_text.text
+
             print self.pretty_weibo(weibo) + '\n'
             weibos.append(weibo)
         return weibos

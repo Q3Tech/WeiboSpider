@@ -2,7 +2,7 @@
 # @Author: Comzyh
 # @Date:   2016-03-06 20:25:20
 # @Last Modified by:   Comzyh
-# @Last Modified time: 2016-04-04 03:55:58
+# @Last Modified time: 2016-04-20 01:26:22
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, Boolean, DATETIME, TEXT
 from sqlalchemy.ext.declarative import declarative_base
@@ -92,6 +92,27 @@ class AccountDAO(object):
     @classmethod
     def commit(cls):
         session.commit()
+
+
+class RawDataDAO(object):
+    u"""提供微博原始数据的存储和查询"""
+    def __init__(self):
+        import plyvel
+        self.db = plyvel.DB(settings.RAW_DATA_STORGE['path'], create_if_missing=True)
+
+    def set_raw_data(self, mid, data, replace=False):
+        if isinstance(mid, unicode):
+            mid = mid.encode('utf-8')
+        assert(isinstance(mid, str))
+        if not replace and self.db.get(mid):
+            return
+        self.db.put(mid, data)
+
+    def get_raw_data(self, mid):
+        if isinstance(mid, unicode):
+            mid = mid.encode('utf-8')
+        assert(isinstance(mid, str))
+        return self.db.get(mid)
 
 
 def create_db():
