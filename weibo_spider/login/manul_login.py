@@ -13,8 +13,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 
-
-from db.db_engine import AccountDAO
+from db import AccountDAO
 
 
 class LoginExecuter(object):
@@ -66,11 +65,12 @@ def import_account_from_file(filename):
     account_file = open(filename, 'r')
     line_num = 0
     create_num = 0
+    account_dao = AccountDAO()
     for line in account_file.readlines():
         print (line)
         line_num += 1
         email, password = line.split('----')[:2]
-        _, created = AccountDAO.update_or_create(email=email, password=password)
+        _, created = account_dao.update_or_create(email=email, password=password)
         if created:
             create_num += 1
     print ('{line} lines, {created} created.'.format(line=line_num, created=create_num))
@@ -80,15 +80,16 @@ def login(login_executer, email, password):
     resp = login_executer.login(email, password)
     if not resp:
         return False
-    AccountDAO.update_or_create(email=email,
-                                password=password,
-                                is_login=True,
-                                login_time=datetime.datetime.now(),
-                                cookies=json.dumps(resp))
+    account_dao = AccountDAO()
+    account_dao.update_or_create(email=email,
+                                 password=password,
+                                 is_login=True,
+                                 login_time=datetime.datetime.now(),
+                                 cookies=json.dumps(resp))
     return True
 
 
 def start_login():
     login_executer = LoginExecuter()
-    for account in AccountDAO.not_login_iter():
+    for account in AccountDAO().not_login_iter():
         login(login_executer=login_executer, email=account.email, password=account.password)

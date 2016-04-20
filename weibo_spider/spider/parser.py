@@ -173,7 +173,7 @@ class Parser(object):
                 'user_id': user_id,
                 'mid': mid
             })
-            self.save_raw(mid, str(item)) # 在数据被破坏之前存储
+            self.save_raw(mid, str(item))  # 在数据被破坏之前存储
 
             # 转发,评论,赞
             feed_action = item.findAll(class_='feed_action')[-1]
@@ -186,7 +186,7 @@ class Parser(object):
 
             # 正文
             comment_txt = item.find(class_='comment_txt')
-            location = self.parse_location(comment_txt, decompose=True) # 破坏性操作
+            location = self.parse_location(comment_txt, decompose=True)  # 破坏性操作
             weibo['location'] = location
             weibo['text'] = comment_txt.text
 
@@ -229,7 +229,7 @@ class Parser(object):
 
             # 文本
             wb_text = item.find(class_='WB_text')
-            location = self.parse_location(wb_text, decompose=True) # 破坏性操作
+            location = self.parse_location(wb_text, decompose=True)  # 破坏性操作
             weibo['location'] = location
             weibo['text'] = wb_text.text
 

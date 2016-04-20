@@ -9,9 +9,9 @@ import random
 import urllib
 import time
 import urlparse
-from db.db_engine import Account
-from db.db_engine import AccountDAO
-from db.db_engine import RawDataDAO
+from db import Account
+from db import AccountDAO
+from db import RawDataDAO
 from parser import Parser
 
 
@@ -72,7 +72,8 @@ class Spider(object):
 
     def save_cookies(slef):
         slef.account.cookies = json.dumps(slef.get_session_cookies(slef.s))
-        AccountDAO.commit()
+        account_dao = AccountDAO()
+        account_dao.commit()
 
     @classmethod
     def check_avail(cls, resp):
@@ -207,7 +208,8 @@ class Spider(object):
                 referer = 'http://s.weibo.com/weibo/{quote}?topnav=1&wvr=6'.format(quote=quote_keyword)
             else:
                 url = 'http://s.weibo.com/weibo/{quote}&nodup=1&page={page}'.format(quote=quote_keyword, page=page)
-                referer = 'http://s.weibo.com/weibo/{quote}&nodup=1&page={page}'.format(quote=quote_keyword, page=page - 1)
+                referer = 'http://s.weibo.com/weibo/{quote}&nodup=1&page={page}'.format(
+                    quote=quote_keyword, page=page - 1)
             resp = self.fetch(url=url, referer=referer)
             _weibos, _, next_url = self.parser.parse_search_result(resp.text)
             weibos += _weibos
@@ -285,7 +287,8 @@ class Spider(object):
 
 
 def get_random_spider():
-    account = AccountDAO.get_random_account()
+    account_dao = AccountDAO()
+    account = account_dao.get_random_account()
     raw_db = RawDataDAO()
     spider = Spider(account=account, raw_db=raw_db)
     return spider
