@@ -16,6 +16,7 @@ def get_praser():
     _login = subparsers.add_parser('login', help='Login service')
     _login.add_argument('-d', '--demon', help='Run as demon.', action='store_true')
     _login.add_argument('-i', '--import-account', help='Import accounts from file')
+
     # shell
     subparsers.add_parser('shell', help='Shell service')
 
@@ -23,6 +24,10 @@ def get_praser():
     _db = subparsers.add_parser('db', help='Shell service')
     _db.add_argument('--create-table', help='create-table', nargs='*')
     return parser
+
+    # spider
+    _spider = subparsers.add_parser('spider', help='Spider')
+    _spider.add_argument('--demon', help='run as demon', action='store_true')
 
 
 def main():
@@ -43,6 +48,8 @@ def main():
             from login.manul_login import start_login
             start_login()
     elif args.subcommand == 'db':
+        pass
+    elif args.subcommand == 'spider':
         pass
 
 if __name__ == '__main__':

@@ -10,6 +10,8 @@ from functools import wraps
 
 from bs4 import BeautifulSoup
 
+from tweetp import TweetP
+
 
 def ensure_soup(func):
     u"""装饰器,如果soup本身是unicode或者str,将其转变成soup."""
@@ -43,7 +45,6 @@ class Parser(object):
         for c in text:
             result *= 62
             result += cls.base62_base.find(c)
-            print result
         return result
 
     @classmethod
@@ -236,6 +237,59 @@ class Parser(object):
             print self.pretty_weibo(weibo) + '\n'
             weibos.append(weibo)
         return weibos
+
+    @ensure_soup
+    def extract_forward_content(self, soup, decompose=False):
+        u"""
+        抽取微博中转发的原文信息.
+
+        特征: node-type="feed_list_forwardContent"
+        forwardContent 中不会再含有 forwardContent
+
+        return weibo
+        """
+        soup = soup.find(attrs={'node-type': 'feed_list_forwardContent'})
+        if not soup:
+            return None
+
+        # 搜索页中的情况
+        if soup.parent and 'class' in soup.parent.attrs and \
+           'comment_info' in soup.parent.attrs['class']:
+            soup = soup.parent
+
+        weibo = TweetP()
+        weibo.update(raw_html=str(soup))
+
+        # 链接,时间,设备
+        wb_from = soup.find(class_='WB_from') or soup.find(class_='feed_from')
+        print wb_from
+        pageurl, timestamp, device = self.parse_time_url_device(wb_from)
+        user_id, mid = self.parse_weibo_url(pageurl)
+        weibo.update(
+            pageurl=pageurl,
+            timestamp=timestamp,
+            device=device,
+            uid=user_id,
+            mid=mid
+        )
+
+        self.save_raw(mid, str(soup))
+
+        # 转发,评论,赞
+        wb_handle = soup.find(class_='WB_handle') or soup.find(class_='feed_action')
+        share, comment, like = self.parse_share_comment_like(wb_handle)
+        weibo.update(
+            share=share,
+            comment=comment,
+            like=like
+        )
+
+        # 文本
+        wb_text = soup.find(class_='WB_text') or soup.find(class_='comment_txt')
+        location = self.parse_location(wb_text, decompose=True)  # 破坏性操作
+        weibo.update(location=location, text=wb_text.text)
+
+        return weibo
 
     @ensure_soup
     def parse_location(self, soup, decompose=False):
