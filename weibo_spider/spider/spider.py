@@ -177,6 +177,7 @@ class Spider(object):
                 continue
             break
         self.referer = resp.url
+        self.last_resp = resp
         return resp
 
     def fetch_weibo(self, user_id, weibo_id):
@@ -218,11 +219,21 @@ class Spider(object):
                 break
 
     def fetch_topic_iter(self, keyword):
+        def get_pl_name(text):
+            max_len = 0
+            target = None
+            for item in self.parser.embed_html_iter(text):
+                if len(item) > max_len:
+                    max_len = len(item)
+                    target = item
+            return re.search(r'Pl_Third_App__\d+', target).group(0)
+
         if isinstance(keyword, unicode):
             keyword = keyword.encode('utf-8')
         url = 'http://huati.weibo.com/k/{quote}?from=501'.format(quote=urllib.quote(keyword))
         page = 0
         referer = None
+        pl_name = None
         while True:
             page += 1
             weibos = []
@@ -243,8 +254,11 @@ class Spider(object):
             resps.append(resp)
             resp_is_json = False
             pagebar = 0
+            pl_name = pl_name or get_pl_name(resp.text)
+            print 'pl_name', pl_name
             while True:
                 _weibos, lazyload, next_url = self.parser.parse_topic_result(resp.text, is_json=resp_is_json)
+                print 'lazyload', lazyload
                 weibos += _weibos
                 if lazyload is None:
                     break
@@ -254,7 +268,7 @@ class Spider(object):
                     'ajwvr': 6,
                     'domain': domain,
                     'id': page_id,
-                    'pl_name': 'Pl_Third_App__9',
+                    'pl_name': pl_name,
                     'pagebar': pagebar,  # 是否显示翻页
                     'domain_op': domain,
                     '__rnd': int(time.time() * 1000),

@@ -4,7 +4,6 @@ u"""用于抓取结果和中间结果的解析的模块."""
 import re
 import json
 import urlparse
-import datetime
 
 from functools import wraps
 
@@ -161,89 +160,20 @@ class Parser(object):
         u"""返回搜索页中的所有微博."""
         weibos = []
         for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
-            weibo = TweetP()
-            weibo.update(raw_html=str(item))
-
-            # 链接,时间,设备
-            feed_from = item.findAll(class_='feed_from')[-1]
-            pageurl, timestamp, device = self.parse_time_url_device(feed_from)
-            user_id, mid = self.parse_weibo_url(pageurl)
-            weibo.update(
-                pageurl=pageurl,
-                timestamp=timestamp,
-                device=device,
-                uid=user_id,
-                mid=mid
-            )
-            self.save_raw(mid, str(item))  # 在数据被破坏之前存储
-
-            # 转发微博
-            forward_weibo = self.extract_forward_content(item)
-            if forward_weibo:
-                weibo.update(forward_tweet=forward_weibo)
-
-            # 转发,评论,赞
-            feed_action = item.findAll(class_='feed_action')[-1]
-            share, comment, like = self.parse_share_comment_like(feed_action)
-            weibo.update(
-                share=share,
-                comment=comment,
-                like=like
-            )
-
-            # 正文
-            comment_txt = item.find(class_='comment_txt')
-            location = self.parse_location(comment_txt, decompose=True)  # 破坏性操作
-            weibo.update(location=location, text=comment_txt.text.strip())
-
-            print(weibo.pretty())
+            weibo = self.parse_weibo(item)
             weibos.append(weibo)
         return weibos
 
     @ensure_soup
     def extract_topic_weibo(self, soup):
         u"""
-        处理从话题页面或者普通页面爬去的微博.
+        处理从话题页面或者普通页面爬取的微博.
 
         return 微博的数组
         """
         weibos = []
         for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
-            weibo = TweetP()
-
-            # 链接,时间,设备
-            wb_from = item.find(class_='WB_from')
-            pageurl, timestamp, device = self.parse_time_url_device(wb_from)
-            user_id, mid = self.parse_weibo_url(pageurl)
-            weibo.update(
-                pageurl=pageurl,
-                timestamp=timestamp,
-                device=device,
-                uid=user_id,
-                mid=mid
-            )
-            self.save_raw(mid, str(item))
-
-            # 转发微博
-            forward_weibo = self.extract_forward_content(item)
-            if forward_weibo:
-                weibo.update(forward_tweet=forward_weibo)
-
-            # 转发,评论,赞
-            wb_handle = item.findAll(class_='WB_handle')[-1]
-            share, comment, like = self.parse_share_comment_like(wb_handle)
-            weibo.update(
-                share=share,
-                comment=comment,
-                like=like
-            )
-
-            # 文本
-            wb_text = item.find(class_='WB_text')
-            location = self.parse_location(wb_text, decompose=True)  # 破坏性操作
-            weibo.update(location=location, text=wb_text.text.strip())
-
-            print(weibo.pretty())
+            weibo = self.parse_weibo(item)
             weibos.append(weibo)
         return weibos
 
@@ -276,7 +206,7 @@ class Parser(object):
     @ensure_soup
     def parse_weibo(self, soup, parse_forward=True, decompose=False):
         u"""
-        统一的微博解析函数.
+        统一的微博解析函数(单条).
 
         parse_forward: 是否进一步解析转发
         decompose: 是否销毁部分
@@ -289,7 +219,7 @@ class Parser(object):
             forward_soup = soup.find(attrs={'node-type': 'feed_list_forwardContent'})
             if forward_soup:
                 forward_weibo = self.extract_forward_content(soup=forward_soup, decompose=True)
-            weibo.update(forward_tweet=forward_weibo)
+                weibo.update(forward_tweet=forward_weibo)
 
         # 链接,时间,设备
         wb_from = soup.find(class_='WB_from') or soup.find(class_='feed_from')
@@ -320,7 +250,6 @@ class Parser(object):
         if decompose:
             soup.decompose()
         return weibo
-
 
     @ensure_soup
     def parse_location(self, soup, decompose=False):
@@ -397,19 +326,3 @@ class Parser(object):
                 next_url = next_page.attrs['href']
             weibos += self.extract_search_weibo(soup)
         return weibos, None, next_url
-
-    @classmethod
-    def pretty_weibo(cls, weibo):
-        u"""以人类可读格式格式化weibo数组."""
-        r = u''
-        r += datetime.datetime.fromtimestamp(weibo['timestamp'] / 1000).strftime("%Y-%m-%d %H:%M:%S")
-        if weibo['location'] and len(weibo['location']):
-            r += u' @{location}'.format(location=weibo['location'])
-        if weibo['device'] and len(weibo['device']):
-            r += u' By {device}'.format(device=weibo['device'])
-        r += '\n'
-        r += weibo['text']
-        r += '\n'
-        r += '{share} share | {comment} comment | {like} like'.format(
-            share=weibo['share'], comment=weibo['comment'], like=weibo['like'])
-        return r
