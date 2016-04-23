@@ -161,37 +161,42 @@ class Parser(object):
         u"""返回搜索页中的所有微博."""
         weibos = []
         for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
-            weibo = {}
+            weibo = TweetP()
+            weibo.update(raw_html=str(item))
 
             # 链接,时间,设备
             feed_from = item.findAll(class_='feed_from')[-1]
             pageurl, timestamp, device = self.parse_time_url_device(feed_from)
             user_id, mid = self.parse_weibo_url(pageurl)
-            weibo.update({
-                'pageurl': pageurl,
-                'timestamp': timestamp,
-                'device': device,
-                'user_id': user_id,
-                'mid': mid
-            })
+            weibo.update(
+                pageurl=pageurl,
+                timestamp=timestamp,
+                device=device,
+                uid=user_id,
+                mid=mid
+            )
             self.save_raw(mid, str(item))  # 在数据被破坏之前存储
+
+            # 转发微博
+            forward_weibo = self.extract_forward_content(item)
+            if forward_weibo:
+                weibo.update(forward_tweet=forward_weibo)
 
             # 转发,评论,赞
             feed_action = item.findAll(class_='feed_action')[-1]
             share, comment, like = self.parse_share_comment_like(feed_action)
-            weibo.update({
-                'share': share,
-                'comment': comment,
-                'like': like
-            })
+            weibo.update(
+                share=share,
+                comment=comment,
+                like=like
+            )
 
             # 正文
             comment_txt = item.find(class_='comment_txt')
             location = self.parse_location(comment_txt, decompose=True)  # 破坏性操作
-            weibo['location'] = location
-            weibo['text'] = comment_txt.text
+            weibo.update(location=location, text=comment_txt.text.strip())
 
-            print self.pretty_weibo(weibo) + '\n'
+            print(weibo.pretty())
             weibos.append(weibo)
         return weibos
 
@@ -204,37 +209,41 @@ class Parser(object):
         """
         weibos = []
         for item in soup.findAll('div', attrs={'action-type': 'feed_list_item'}):
-            weibo = {}
+            weibo = TweetP()
 
             # 链接,时间,设备
             wb_from = item.find(class_='WB_from')
             pageurl, timestamp, device = self.parse_time_url_device(wb_from)
             user_id, mid = self.parse_weibo_url(pageurl)
-            weibo.update({
-                'pageurl': pageurl,
-                'timestamp': timestamp,
-                'device': device,
-                'user_id': user_id,
-                'mid': mid
-            })
+            weibo.update(
+                pageurl=pageurl,
+                timestamp=timestamp,
+                device=device,
+                uid=user_id,
+                mid=mid
+            )
             self.save_raw(mid, str(item))
+
+            # 转发微博
+            forward_weibo = self.extract_forward_content(item)
+            if forward_weibo:
+                weibo.update(forward_tweet=forward_weibo)
 
             # 转发,评论,赞
             wb_handle = item.findAll(class_='WB_handle')[-1]
             share, comment, like = self.parse_share_comment_like(wb_handle)
-            weibo.update({
-                'share': share,
-                'comment': comment,
-                'like': like
-            })
+            weibo.update(
+                share=share,
+                comment=comment,
+                like=like
+            )
 
             # 文本
             wb_text = item.find(class_='WB_text')
             location = self.parse_location(wb_text, decompose=True)  # 破坏性操作
-            weibo['location'] = location
-            weibo['text'] = wb_text.text
+            weibo.update(location=location, text=wb_text.text.strip())
 
-            print self.pretty_weibo(weibo) + '\n'
+            print(weibo.pretty())
             weibos.append(weibo)
         return weibos
 
@@ -262,7 +271,6 @@ class Parser(object):
 
         # 链接,时间,设备
         wb_from = soup.find(class_='WB_from') or soup.find(class_='feed_from')
-        print wb_from
         pageurl, timestamp, device = self.parse_time_url_device(wb_from)
         user_id, mid = self.parse_weibo_url(pageurl)
         weibo.update(
@@ -287,8 +295,10 @@ class Parser(object):
         # 文本
         wb_text = soup.find(class_='WB_text') or soup.find(class_='comment_txt')
         location = self.parse_location(wb_text, decompose=True)  # 破坏性操作
-        weibo.update(location=location, text=wb_text.text)
+        weibo.update(location=location, text=wb_text.text.strip())
 
+        if decompose:
+            soup.decompose()
         return weibo
 
     @ensure_soup

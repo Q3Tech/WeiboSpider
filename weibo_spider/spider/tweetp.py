@@ -23,7 +23,7 @@ class TweetP(object):
         self.share = None
         self.comment = None
         self.like = None
-
+        self.isforward = False
         self.forward_tweet = None  # TweetP 对象,转发的微博
 
     def update(self, **kwargs):
@@ -41,12 +41,16 @@ class TweetP(object):
             elif k in ('isforward'):
                 assert(isinstance(v, bool))
                 self.__setattr__(k, v)
+            elif k == 'forward_tweet':
+                assert(isinstance(v, TweetP))
+                self.forward_tweet = v
+                self.isforward = True
             else:
                 self._dict[k] = v
 
     def pretty(self):
         u"""以人类可读格式格式化weibo数组."""
-        r = u''
+        r = u'{uid}/{mid} | '.format(uid=self.uid, mid=self.mid)
         r += datetime.datetime.fromtimestamp(self.timestamp / 1000).strftime("%Y-%m-%d %H:%M:%S")
         if self.location and len(self.location):
             r += u' @{location}'.format(location=self.location)
@@ -55,6 +59,8 @@ class TweetP(object):
         r += '\n'
         r += self.text
         r += '\n'
+        if self.isforward:
+            r += "Forward from {uid}/{mid}\n".format(uid=self.forward_tweet.uid, mid=self.forward_tweet.mid)
         r += '{share} share | {comment} comment | {like} like'.format(
             share=self.share, comment=self.comment, like=self.like)
         return r
