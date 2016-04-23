@@ -257,7 +257,8 @@ class Parser(object):
 
         return weibo
         """
-        soup = soup.find(attrs={'node-type': 'feed_list_forwardContent'})
+        if soup.attrs.get('node-type') != 'feed_list_forwardContent':
+            soup = soup.find(attrs={'node-type': 'feed_list_forwardContent'})
         if not soup:
             return None
 
@@ -266,8 +267,29 @@ class Parser(object):
            'comment_info' in soup.parent.attrs['class']:
             soup = soup.parent
 
+        weibo = self.parse_weibo(soup=soup, parse_forward=False)  # 不再寻找 forward
+
+        if decompose:
+            soup.decompose()
+        return weibo
+
+    @ensure_soup
+    def parse_weibo(self, soup, parse_forward=True, decompose=False):
+        u"""
+        统一的微博解析函数.
+
+        parse_forward: 是否进一步解析转发
+        decompose: 是否销毁部分
+        """
         weibo = TweetP()
         weibo.update(raw_html=str(soup))
+
+        # 转发内容
+        if parse_forward:
+            forward_soup = soup.find(attrs={'node-type': 'feed_list_forwardContent'})
+            if forward_soup:
+                forward_weibo = self.extract_forward_content(soup=forward_soup, decompose=True)
+            weibo.update(forward_tweet=forward_weibo)
 
         # 链接,时间,设备
         wb_from = soup.find(class_='WB_from') or soup.find(class_='feed_from')
@@ -280,8 +302,6 @@ class Parser(object):
             uid=user_id,
             mid=mid
         )
-
-        self.save_raw(mid, str(soup))
 
         # 转发,评论,赞
         wb_handle = soup.find(class_='WB_handle') or soup.find(class_='feed_action')
@@ -300,6 +320,7 @@ class Parser(object):
         if decompose:
             soup.decompose()
         return weibo
+
 
     @ensure_soup
     def parse_location(self, soup, decompose=False):
