@@ -18,9 +18,10 @@ Base = declarative_base()
 class DBEngine(Singleton):
 
     def __init__(self):
-        self.connect_string = 'mysql://{user}:{password}@{host}/{database}'.format(**settings.MYSQL_SETTINGS)
+        self.connect_string = 'mysql://{user}:{password}@{host}/{database}?charset=utf8mb4'.format(
+            **settings.MYSQL_SETTINGS)
         print self.connect_string
-        __engine = create_engine(self.connect_string, convert_unicode=True, echo=True)
+        __engine = create_engine(self.connect_string, echo=True)
         self.engine = __engine.connect()
         Session = sessionmaker(bind=self.engine)
         self.session = Session()

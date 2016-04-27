@@ -17,7 +17,7 @@ def ensure_soup(func):
     @wraps(func)
     def wrapper(self, soup, *args, **kwargs):
         if isinstance(soup, str) or isinstance(soup, unicode):
-            soup = BeautifulSoup(soup, 'html.parser')
+            soup = BeautifulSoup(soup, 'lxml')
         return func(self=self, soup=soup, *args, **kwargs)
     return wrapper
 
@@ -27,15 +27,10 @@ class Parser(object):
 
     base62_base = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-    def __init__(self, raw_db=None):
-        u"""
-        Constructer.
-
-        raw_db: RawDataDAO
-        """
+    def __init__(self):
+        u"""Constructer."""
         self._weibo_url_pattern = re.compile(r'\/(?P<user_id>\d+)\/(?P<mid>[0-9a-zA-Z]+)')
         self._embed_html_pattern = re.compile(r'\"html\":\"((?:[^"\\]|\\.)*)\"')
-        self.raw_data_db = raw_db
 
     @classmethod
     def base62_decode(cls, text):
@@ -82,11 +77,6 @@ class Parser(object):
             result = cls.base62_encode(mid % 10000000) + result
             mid /= 10000000
         return result
-
-    def save_raw(self, mid, data):
-        u"""如果指定了RawDataDAO，则存储."""
-        if self.raw_data_db:
-            self.raw_data_db.set_raw_data(mid=mid, data=data)
 
     def parse_weibo_url(self, text):
         u"""
@@ -302,7 +292,7 @@ class Parser(object):
             embed_html_iter = self.embed_html_iter(text)
 
         for embed_html in embed_html_iter:
-            soup = BeautifulSoup(embed_html, 'html.parser')
+            soup = BeautifulSoup(embed_html, 'lxml')
             lazyload = soup.find('div', attrs={'node-type': 'lazyload'}) or lazyload
             _, _, next_page = self.split_pages_bar(soup)
             if next_page:
@@ -322,9 +312,9 @@ class Parser(object):
         next_url: 下一页的url （如果有）（url一般是相对路径）
         """
         weibos = []
-        next_url = ""
+        next_url = None
         for embed_html in self.embed_html_iter(text):
-            soup = BeautifulSoup(embed_html, 'html.parser')
+            soup = BeautifulSoup(embed_html, 'lxml')
             _, _, next_page = self.split_pages_bar(soup)
             if next_page:
                 next_url = next_page.attrs['href']

@@ -4,14 +4,16 @@
 u"""定义处理过的微博的数据结构."""
 
 import datetime
+import time
 
 
 class TweetP(object):
     u"""parsed Tweet."""
 
-    def __init__(self):
+    def __init__(self, fetch_time=None):
         u"""构造函数."""
         self._dict = {}  # 存储数据
+        self.fetch_timestamp = int(time.time() * 1000)
         self.uid = None  # 用户id
         self.mid = None  # Base62文本
         self.nickname = None
@@ -32,7 +34,7 @@ class TweetP(object):
         for k, v in kwargs.iteritems():
             if v is None:
                 continue
-            if k in ('uid', 'timestamp', 'share', 'comment', 'like'):
+            if k in ('uid', 'timestamp', 'share', 'comment', 'like', 'fetch_timestamp'):
                 self.__setattr__(k, int(v))
             elif k in ('mid', 'pageurl', 'raw_html', 'text', 'location', 'device', 'nickname'):
                 assert(isinstance(v, basestring))

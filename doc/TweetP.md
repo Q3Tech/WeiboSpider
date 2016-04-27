@@ -10,7 +10,7 @@
 - `pageurl` 微博地址，不保证是绝对地址 unicode
 - `raw_html` 原始 HTML 数据 unicode
 - `timestamp` 发布时间戳 毫秒 int
-- `device` = 发布设备 unicode
+- `device` 发布设备 unicode
 - `location` 位置信息 unicode
 - `text` 文本 unicode
 - `share` 转发数 int

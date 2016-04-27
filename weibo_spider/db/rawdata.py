@@ -18,7 +18,8 @@ class RawDataDAO(Singleton):
     def set_raw_data(self, mid, data, replace=False):
         if isinstance(mid, unicode):
             mid = mid.encode('utf-8')
-        assert(isinstance(mid, str))
+        if isinstance(data, unicode):
+            data = data.encode('utf-8')
         if not replace and self.db.get(mid):
             return
         self.db.put(mid, data)

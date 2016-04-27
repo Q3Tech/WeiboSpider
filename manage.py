@@ -48,7 +48,11 @@ def main():
             from login.manul_login import start_login
             start_login()
     elif args.subcommand == 'db':
-        pass
+        if 'create_table' in args:
+            from db.db_engine import DBEngine
+            db_engine = DBEngine()
+            db_engine.create_db()
+
     elif args.subcommand == 'spider':
         pass
 

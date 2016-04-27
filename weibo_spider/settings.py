@@ -19,3 +19,5 @@ RAW_DATA_STORGE = {
     'type': 'LevelDB',
     'path': os.path.join(BASE_DIR, 'rawdata'),
 }
+
+SAMPLES_DIR  = os.path.join(BASE_DIR, 'samples')

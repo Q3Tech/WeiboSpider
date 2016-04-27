@@ -9,33 +9,45 @@ import random
 import urllib
 import time
 import urlparse
+
 from db import Account
 from db import AccountDAO
 from db import RawDataDAO
+from db import TweetDAO
 from parser import Parser
+from tweetp import TweetP
+
+
+class LoginFailedException(Exception):
+    pass
 
 
 class Spider(object):
 
-    def __init__(self, account, raw_db=None):
+    def __init__(self, account, rawdata_dao=None, tweet_dao=None):
         u"""
         爬虫类， 每个使用一个账户.
 
         account: Account 对象
-        raw_db: RawDataDAO
+        rawdata_dao: RawDataDAO
+        tweet_dao: TweetDAO
         """
         assert isinstance(account, Account)
-        if raw_db:
-            assert(isinstance(raw_db, RawDataDAO))
+        if rawdata_dao:
+            assert(isinstance(rawdata_dao, RawDataDAO))
+        if tweet_dao:
+            assert(isinstance(tweet_dao, TweetDAO))
         self.account = account
-        self.raw_db = raw_db
+        self.rawdata_dao = rawdata_dao
+        self.tweet_dao = tweet_dao
         self.s = requests.session()
         self.set_session_cookie(session=self.s,
                                 cookies=account.cookies)
         self.s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; WOW64) '\
             'AppleWebKit/537.36 \(KHTML, like Gecko) Chrome/49.0.2623.110 Safari/537.36'
         self.referer = ''
-        self.parser = Parser(raw_db=raw_db)
+        self.parser = Parser()
+        self.fetch('http://weibo.com/')
 
     def __del__(self):
         self.save_cookies()
@@ -74,6 +86,12 @@ class Spider(object):
         slef.account.cookies = json.dumps(slef.get_session_cookies(slef.s))
         account_dao = AccountDAO()
         account_dao.commit()
+
+    def handle_login_failed(self):
+        self.account.is_login = False
+        account_dao = AccountDAO()
+        account_dao.commit()
+        raise LoginFailedException
 
     @classmethod
     def check_avail(cls, resp):
@@ -132,6 +150,7 @@ class Spider(object):
             url = r'http://login.sina.com.cn/sso/login.php?' + params
         else:  # cross_domain
             logging.info('cross_domain')
+            self.handle_login_failed()
             return False
             url = "http://login.sina.com.cn/visitor/visitor?a=crossdomain&cb=return_back&s="
             url += encodeURIComponent(json_resp["data"]["sub"])
@@ -214,7 +233,9 @@ class Spider(object):
             resp = self.fetch(url=url, referer=referer)
             _weibos, _, next_url = self.parser.parse_search_result(resp.text)
             weibos += _weibos
-            yield weibos, page, next_url is not None, resp
+            self.save_weibo(weibos)
+            yield weibos, page, next_url is not None
+            print 'next_url', next_url
             if not next_url:
                 break
 
@@ -288,21 +309,42 @@ class Spider(object):
                 resp_is_json = True
                 pagebar += 1
                 resps.append(resp)
+            self.save_weibo(weibos)
             yield weibos, page, next_url is not None
             if next_url:
                 url = urlparse.urljoin(referer, next_url)
             else:
                 break
 
-    @classmethod
-    def save_to_file(cls, resp, filename):
+    def save_to_file(self, resp=None, filename=None):
+        if resp is None:
+            resp = self.last_resp
+        if filename is None:
+            import os
+            import settings
+            import uuid
+            filename = os.path.join(settings.SAMPLES_DIR, str(uuid.uuid4()) + '.html')
         with open(filename, 'w') as file:
             file.write(resp.content)
+
+    def save_weibo(self, weibos):
+        if isinstance(weibos, TweetP):
+            weibos = [weibos]
+        for weibo in weibos:
+            if self.rawdata_dao:
+                self.rawdata_dao.set_raw_data(weibo.mid, weibo.raw_html)
+                if weibo.forward_tweet:
+                    self.rawdata_dao.set_raw_data(weibo.forward_tweet.mid, weibo.forward_tweet.raw_html)
+            if self.tweet_dao:
+                self.tweet_dao.save_tweetp(weibo)
+                if weibo.forward_tweet:
+                    self.tweet_dao.save_tweetp(weibo.forward_tweet)
 
 
 def get_random_spider():
     account_dao = AccountDAO()
     account = account_dao.get_random_account()
-    raw_db = RawDataDAO()
-    spider = Spider(account=account, raw_db=raw_db)
+    rawdata_dao = RawDataDAO()
+    tweet_dao = TweetDAO()
+    spider = Spider(account=account, rawdata_dao=rawdata_dao, tweet_dao=tweet_dao)
     return spider
