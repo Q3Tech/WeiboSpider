@@ -14,6 +14,7 @@ class TweetP(object):
         self._dict = {}  # 存储数据
         self.uid = None  # 用户id
         self.mid = None  # Base62文本
+        self.nickname = None
         self.pageurl = None
         self.raw_html = None  # 原始 HTML 数据
         self.timestamp = None  # 发布时间戳 毫秒
@@ -33,7 +34,7 @@ class TweetP(object):
                 continue
             if k in ('uid', 'timestamp', 'share', 'comment', 'like'):
                 self.__setattr__(k, int(v))
-            elif k in ('mid', 'pageurl', 'raw_html', 'text', 'location', 'device'):
+            elif k in ('mid', 'pageurl', 'raw_html', 'text', 'location', 'device', 'nickname'):
                 assert(isinstance(v, str) or isinstance(v, unicode))
                 if isinstance(v, str):
                     v = v.decode('utf-8')
@@ -50,7 +51,8 @@ class TweetP(object):
 
     def pretty(self):
         u"""以人类可读格式格式化weibo数组."""
-        r = u'{uid}/{mid} | '.format(uid=self.uid, mid=self.mid)
+        r = u'{uid}/{mid}\n'.format(uid=self.uid, mid=self.mid)
+        r += self.nickname + ' | '
         r += datetime.datetime.fromtimestamp(self.timestamp / 1000).strftime("%Y-%m-%d %H:%M:%S")
         if self.location and len(self.location):
             r += u' @{location}'.format(location=self.location)

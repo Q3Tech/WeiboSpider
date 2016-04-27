@@ -221,6 +221,10 @@ class Parser(object):
                 forward_weibo = self.extract_forward_content(soup=forward_soup, decompose=True)
                 weibo.update(forward_tweet=forward_weibo)
 
+        # 昵称
+        nickname = soup.find(lambda tag: 'nick-name' in tag.attrs).attrs['nick-name']
+        weibo.update(nickname=nickname)
+
         # 链接,时间,设备
         wb_from = soup.find(class_='WB_from') or soup.find(class_='feed_from')
         pageurl, timestamp, device = self.parse_time_url_device(wb_from)
