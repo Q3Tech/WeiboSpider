@@ -35,7 +35,7 @@ class TweetP(object):
             if k in ('uid', 'timestamp', 'share', 'comment', 'like'):
                 self.__setattr__(k, int(v))
             elif k in ('mid', 'pageurl', 'raw_html', 'text', 'location', 'device', 'nickname'):
-                assert(isinstance(v, str) or isinstance(v, unicode))
+                assert(isinstance(v, basestring))
                 if isinstance(v, str):
                     v = v.decode('utf-8')
                 self.__setattr__(k, v)
