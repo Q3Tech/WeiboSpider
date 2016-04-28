@@ -212,7 +212,7 @@ class Parser(object):
                 weibo.update(forward_tweet=forward_weibo)
 
         # 昵称
-        nickname = soup.find(lambda tag: 'nick-name' in tag.attrs).attrs['nick-name']
+        nickname = soup.find(**{'nick-name': True}).attrs['nick-name']
         weibo.update(nickname=nickname)
 
         # 链接,时间,设备
