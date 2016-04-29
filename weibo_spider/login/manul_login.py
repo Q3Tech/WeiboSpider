@@ -41,7 +41,10 @@ class LoginExecuter(object):
             username_input.send_keys(username)
             password_input.clear()
             password_input.send_keys(password)
-            submit_btn.click()
+            try:
+                submit_btn.click()
+            except Exception:
+                pass
 
             # 检测登陆成功
             normal_tab = WebDriverWait(self.browser, 40).until(

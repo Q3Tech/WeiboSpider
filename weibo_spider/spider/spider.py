@@ -9,6 +9,7 @@ import random
 import urllib
 import time
 import urlparse
+import mimetypes
 
 from db import Account
 from db import AccountDAO
@@ -116,6 +117,48 @@ class Spider(object):
         cond2 = re.search(r'var restore_back = function \(response\)', resp.text)
         return cond1 is not None and cond2 is not None
 
+    def check_captcha(self, resp):
+        """检查验证码."""
+        import os
+        import settings
+        import uuid
+        text = resp.text
+        if text.find('yzm_submit') != -1 \
+           and text.find('yzm_input') != -1:
+            for html in self.parser.embed_html_iter(text):
+                g = re.search(r'<img\ssrc=\"(?P<src>[^\"]*?)\"\snode-type=\"yzm_img\">', html)
+                url = urlparse.urljoin(resp.url, g.group('src'))
+                _type = urlparse.parse_qs(urlparse.urlsplit(url).query)['type']
+                img_resp = self.s.get(url)
+                captcha_filename = 'captcha' + str(uuid.uuid4()) + \
+                    mimetypes.guess_extension(img_resp.headers['Content-Type'])
+                with open(os.path.join(settings.SAMPLES_DIR, captcha_filename), 'w') as f:
+                    f.write(img_resp.content)
+                code = raw_input('Please enter the captcha code.\n')
+                print code
+                post_url = urlparse.urljoin(resp.url,
+                                            '/ajax/pincode/verified?__rnd={0}'.format(int(time.time() * 1000)))
+                resp_n = self.s.post(
+                    url=post_url,
+                    headers={
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Referer': resp.url,
+                    },
+                    data={
+                        'secode': code,
+                        'type': _type,
+                        'page_id': re.search(r"\$CONFIG\['pageid'\]\s*=\s*'(?P<pageid>.*?)';", text).group('pageid'),
+                        '_t': 0,
+                    }
+                )
+                # successful: u'{"code":"100000","msg":"","data":{"retcode":"9e27b221a5b6e577d40e45226442bd40"}}'
+                if json.loads(resp_n.text)['code'] == '100000':
+                    return True
+                else:
+                    return False
+        return None
+
     def relogin(self, former_resp):
         """
         处理长时间未登录后登陆的流程
@@ -192,6 +235,9 @@ class Spider(object):
                     logging.info('Fetch: relogin Failed')
                     break
                 self.save_cookies()
+                resp = self.s.get(url=url, headers={'Referer': referer})
+                continue
+            if self.check_captcha(resp) is not None:
                 resp = self.s.get(url=url, headers={'Referer': referer})
                 continue
             break
