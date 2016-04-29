@@ -20,4 +20,6 @@ RAW_DATA_STORGE = {
     'path': os.path.join(BASE_DIR, 'rawdata'),
 }
 
-SAMPLES_DIR  = os.path.join(BASE_DIR, 'samples')
+SAMPLES_DIR = os.path.join(BASE_DIR, 'samples')
+
+VERIFY_BOT_URL = ''

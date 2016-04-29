@@ -117,6 +117,17 @@ class Spider(object):
         cond2 = re.search(r'var restore_back = function \(response\)', resp.text)
         return cond1 is not None and cond2 is not None
 
+    def handle_captcha(self, filename, content_type, body):
+        import settings
+        print "handle_captcha!"
+        if settings.VERIFY_BOT_URL:
+            resp = self.s.post(settings.VERIFY_BOT_URL, files={
+                'captcha': (filename, body, content_type)
+            })
+            return resp.text
+        else:
+            raw_input('Please enter the captcha code.\n')
+
     def check_captcha(self, resp):
         """检查验证码."""
         import os
@@ -125,6 +136,7 @@ class Spider(object):
         text = resp.text
         if text.find('yzm_submit') != -1 \
            and text.find('yzm_input') != -1:
+            print "Got a captcha!"
             for html in self.parser.embed_html_iter(text):
                 g = re.search(r'<img\ssrc=\"(?P<src>[^\"]*?)\"\snode-type=\"yzm_img\">', html)
                 url = urlparse.urljoin(resp.url, g.group('src'))
@@ -134,8 +146,8 @@ class Spider(object):
                     mimetypes.guess_extension(img_resp.headers['Content-Type'])
                 with open(os.path.join(settings.SAMPLES_DIR, captcha_filename), 'w') as f:
                     f.write(img_resp.content)
-                code = raw_input('Please enter the captcha code.\n')
-                print code
+                code = self.handle_captcha(captcha_filename, img_resp.headers['Content-Type'], img_resp.content)
+                print 'Captcha code is {0}'.format(code)
                 post_url = urlparse.urljoin(resp.url,
                                             '/ajax/pincode/verified?__rnd={0}'.format(int(time.time() * 1000)))
                 resp_n = self.s.post(
