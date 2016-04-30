@@ -394,9 +394,9 @@ class Spider(object):
                 if weibo.forward_tweet:
                     self.rawdata_dao.set_raw_data(weibo.forward_tweet.mid, weibo.forward_tweet.raw_html)
             if self.tweet_dao:
-                self.tweet_dao.save_tweetp(weibo)
+                self.tweet_dao.update_or_create_tweetp(weibo)
                 if weibo.forward_tweet:
-                    self.tweet_dao.save_tweetp(weibo.forward_tweet)
+                    self.tweet_dao.update_or_create_tweetp(weibo.forward_tweet)
 
 
 def get_random_spider():

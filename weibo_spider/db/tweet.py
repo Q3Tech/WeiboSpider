@@ -32,8 +32,8 @@ class Tweet(Base):
 
     id = Column(Integer, primary_key=True)
     fetch_timestamp = Column(BIGINT)
-    uid = Column(BIGINT)
-    mid = Column(String(12))
+    uid = Column(BIGINT, index=True)
+    mid = Column(String(12), unique=True)
     nickname = Column(String(61))
     isforward = Column(Boolean)
     text = Column(TEXT)
@@ -66,10 +66,27 @@ class TweetDAO(Singleton):
             location=tweetp.location,
             share=tweetp.share,
             comment=tweetp.comment,
-            like=tweetp.comment,
+            like=tweetp.like,
         )
         if tweetp.isforward:
             tweet.forward_uid = tweetp.forward_tweet.uid
             tweet.forward_mid = tweetp.forward_tweet.mid
         self.session.add(tweet)
         self.session.commit()
+        tweet
+
+    def update_or_create_tweetp(self, tweetp):
+        created = False
+        tweet = self.session.query(Tweet).filter(
+            Tweet.mid == tweetp.mid).one_or_none()
+        if tweet:
+            tweet.fetch_timestamp = tweetp.fetch_timestamp
+            tweet.share = tweetp.share
+            tweet.comment = tweetp.comment
+            tweet.like = tweetp.like
+            self.session.commit()
+        else:
+            tweet = self.save_tweetp(tweetp)
+            created = True
+
+        return created, tweet
