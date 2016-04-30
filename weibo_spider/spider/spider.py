@@ -35,8 +35,12 @@ class Spider(object):
         """
         assert isinstance(account, Account)
         if rawdata_dao:
+            if rawdata_dao is True:
+                rawdata_dao = RawDataDAO()
             assert(isinstance(rawdata_dao, RawDataDAO))
         if tweet_dao:
+            if tweet_dao is True:
+                tweet_dao = TweetDAO()
             assert(isinstance(tweet_dao, TweetDAO))
         self.account = account
         self.rawdata_dao = rawdata_dao
@@ -273,6 +277,8 @@ class Spider(object):
         return weibos
 
     def fetch_search_iter(self, keyword, start_page=1):
+        if isinstance(keyword, unicode):
+            keyword = keyword.encode('utf-8')
         quote_keyword = urllib.quote(urllib.quote(keyword))  # quote 两次
         page = start_page - 1
         assert(page >= 0)

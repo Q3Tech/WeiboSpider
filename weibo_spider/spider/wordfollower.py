@@ -3,6 +3,7 @@
 
 import thread
 import time
+import logging
 
 from spider import Spider
 from db.wordfollow import WordFollowDAO
@@ -20,24 +21,29 @@ class WordFollower(object):
             account = account_dao.get_random_account()
         print account
         self.account = account
-        self.spider = Spider(account=self.account)
+        self.spider = Spider(account=self.account, rawdata_dao=True, tweet_dao=True)
         self.running = True
 
     def start_follow(self):
-        thread.start_new_thread(self.follow_worker)
+        thread.start_new_thread(self.follow_worker, ())
 
     def __update(self):
         it = self.spider.fetch_search_iter(keyword=self.wordfollow.word)
         newest_ts = self.wordfollow.newest_timestamp
+        min_ts = 0
         max_ts = 0
         num_new = 0
+        logging.info('start __update loop.')
         for weibos, page, _ in it:
+            logging.info('__update page {0}.'.format(page))
             for weibo in weibos:
                 if weibo.timestamp >= newest_ts:  # New
                     print weibo.pretty()
                     num_new += 1
                 max_ts = max(max_ts, weibo.timestamp)
-            if max_ts > newest_ts:
+                min_ts = min(min_ts, weibo.timestamp)
+            if min_ts < newest_ts:
+                logging.info('break __update.')
                 break
             # if page % 10 == 0:
             #     time.sleep(10)
@@ -47,5 +53,8 @@ class WordFollower(object):
 
     def follow_worker(self):
         while self.running:
-            self.__update()
+            num_new = self.__update()
+            word = self.wordfollow.word
+            word = word.encode('utf-8') if isinstance(word, unicode) else word
+            logging.info('WordFollower {0} got {1} new, and going to sleep 30 seconds.'.format(word, num_new))
             time.sleep(30)
