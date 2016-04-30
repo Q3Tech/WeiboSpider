@@ -1,18 +1,15 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Author: Comzyh
-# @Date:   2016-03-30 18:43:24
-# @Last Modified by:   Comzyh
-# @Last Modified time: 2016-04-15 17:44:40
 u"""Weibo Spider配置模块."""
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 MYSQL_SETTINGS = {
-    'host': '192.168.50.1',
-    'user': 'root',
-    'password': 'comzyh',
-    'database': 'weibo_spider'
+    'host': '<mysql_host_here>',
+    'user': '<database_user>',
+    'password': '<database_password?',
+    'database': '<database>'
 }
 
 RAW_DATA_STORGE = {

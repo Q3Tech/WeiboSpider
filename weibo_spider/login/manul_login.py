@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Author: Comzyh
-# @Date:   2016-01-23 22:02:48
-# @Last Modified by:   Comzyh
-# @Last Modified time: 2016-04-04 15:44:37
-
 import datetime
 import json
 import logging
