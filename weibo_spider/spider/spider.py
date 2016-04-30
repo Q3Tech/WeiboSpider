@@ -334,10 +334,8 @@ class Spider(object):
             resp_is_json = False
             pagebar = 0
             pl_name = pl_name or get_pl_name(resp.text)
-            print 'pl_name', pl_name
             while True:
                 _weibos, lazyload, next_url = self.parser.parse_topic_result(resp.text, is_json=resp_is_json)
-                print 'lazyload', lazyload
                 weibos += _weibos
                 if lazyload is None:
                     break
@@ -358,7 +356,6 @@ class Spider(object):
                 params['page'] = params.get('page', 1)
                 params['pre_page'] = params.get('pre_page', params['page'])
                 logging.info('Topic lazyload:')
-                print params
                 resp = self.s.get(url=url, params=params, headers={
                     'X-Requested-With': 'XMLHttpRequest',
                     'Content-Type': 'application/x-www-form-urlencoded',
