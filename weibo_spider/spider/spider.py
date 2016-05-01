@@ -9,7 +9,6 @@ import random
 import urllib
 import time
 import urlparse
-import mimetypes
 
 from db import Account
 from db import AccountDAO
@@ -17,6 +16,7 @@ from db import RawDataDAO
 from db import TweetDAO
 from parser import Parser
 from tweetp import TweetP
+from captcha import CaptchaDecoderFactory
 
 
 class LoginFailedException(Exception):
@@ -53,6 +53,7 @@ class Spider(object):
         self.referer = ''
         self.parser = Parser()
         self.fetch('http://weibo.com/')
+        self.capthca_decoder = CaptchaDecoderFactory('Ruokuai')()
 
     def __del__(self):
         self.save_cookies()
@@ -121,22 +122,12 @@ class Spider(object):
         cond2 = re.search(r'var restore_back = function \(response\)', resp.text)
         return cond1 is not None and cond2 is not None
 
-    def handle_captcha(self, filename, content_type, body):
-        import settings
+    def handle_captcha(self, body, content_type):
         print "handle_captcha!"
-        if settings.VERIFY_BOT_URL:
-            resp = self.s.post(settings.VERIFY_BOT_URL, files={
-                'captcha': (filename, body, content_type)
-            })
-            return resp.text
-        else:
-            raw_input('Please enter the captcha code.\n')
+        return self.capthca_decoder.decode(body, content_type)
 
     def check_captcha(self, resp):
         """检查验证码."""
-        import os
-        import settings
-        import uuid
         text = resp.text
         if text.find('yzm_submit') != -1 \
            and text.find('yzm_input') != -1:
@@ -146,11 +137,7 @@ class Spider(object):
                 url = urlparse.urljoin(resp.url, g.group('src'))
                 _type = urlparse.parse_qs(urlparse.urlsplit(url).query)['type']
                 img_resp = self.s.get(url)
-                captcha_filename = 'captcha' + str(uuid.uuid4()) + \
-                    mimetypes.guess_extension(img_resp.headers['Content-Type'])
-                with open(os.path.join(settings.SAMPLES_DIR, captcha_filename), 'w') as f:
-                    f.write(img_resp.content)
-                code = self.handle_captcha(captcha_filename, img_resp.headers['Content-Type'], img_resp.content)
+                code = self.handle_captcha(img_resp.content, img_resp.headers['Content-Type'])
                 print 'Captcha code is {0}'.format(code)
                 post_url = urlparse.urljoin(resp.url,
                                             '/ajax/pincode/verified?__rnd={0}'.format(int(time.time() * 1000)))
