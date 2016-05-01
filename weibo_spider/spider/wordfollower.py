@@ -30,7 +30,7 @@ class WordFollower(object):
     def __update(self):
         it = self.spider.fetch_search_iter(keyword=self.wordfollow.word)
         newest_ts = self.wordfollow.newest_timestamp
-        min_ts = 0
+        min_ts = int((time.time() + 3600) * 1000)
         max_ts = 0
         num_new = 0
         logging.info('start __update loop.')
@@ -42,6 +42,8 @@ class WordFollower(object):
                     num_new += 1
                 max_ts = max(max_ts, weibo.timestamp)
                 min_ts = min(min_ts, weibo.timestamp)
+            logging.info("min_ts={min_ts}, max_ts={max_ts}, newest_ts={newest_ts}.".format(
+                min_ts=min_ts, max_ts=max_ts, newest_ts=newest_ts))
             if min_ts < newest_ts:
                 logging.info('break __update.')
                 break

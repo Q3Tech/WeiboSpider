@@ -252,7 +252,7 @@ class Parser(object):
 
         如果 decompose=True, 则从soup中删除位置，避免打乱文本
         """
-        icon = soup.find(class_='ficon_cd_place')
+        icon = soup.find(class_=['ficon_cd_place', 'icon_cd_place'])
         if not icon:
             return None
         link = icon.parent
