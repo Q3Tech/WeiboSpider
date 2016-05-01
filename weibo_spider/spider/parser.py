@@ -4,6 +4,7 @@ u"""用于抓取结果和中间结果的解析的模块."""
 import re
 import json
 import urlparse
+import logging
 
 from functools import wraps
 
@@ -18,7 +19,21 @@ def ensure_soup(func):
     def wrapper(self, soup, *args, **kwargs):
         if isinstance(soup, str) or isinstance(soup, unicode):
             soup = BeautifulSoup(soup, 'lxml')
-        return func(self=self, soup=soup, *args, **kwargs)
+        try:
+            return func(self=self, soup=soup, *args, **kwargs)
+        except Exception as e:
+            import traceback
+            import os
+            import settings
+            import uuid
+            uuid_filename = str(uuid.uuid4()) + '.txt.html'
+            filename = os.path.join(settings.SAMPLES_DIR,  uuid_filename)
+            with open(filename, 'w') as file:
+                file.write(str(soup))
+            logging.error('Sample saved to {filename}'.format(filename=uuid_filename))
+            traceback.print_exc()
+            raise e
+
     return wrapper
 
 
@@ -256,6 +271,8 @@ class Parser(object):
         if not icon:
             return None
         link = icon.parent
+        if 'title' not in link.attrs:
+            link = link.parent
         location = link.attrs['title']
         if decompose:
             link.decompose()
