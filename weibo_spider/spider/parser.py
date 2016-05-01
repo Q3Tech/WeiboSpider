@@ -19,10 +19,12 @@ def ensure_soup(func):
     def wrapper(self, soup, *args, **kwargs):
         if isinstance(soup, str) or isinstance(soup, unicode):
             soup = BeautifulSoup(soup, 'lxml')
+        body = soup.find('body')
+        if body:
+            soup = body.children.next()
         try:
             return func(self=self, soup=soup, *args, **kwargs)
-        except Exception as e:
-            import traceback
+        except Exception:
             import os
             import settings
             import uuid
@@ -31,8 +33,7 @@ def ensure_soup(func):
             with open(filename, 'w') as file:
                 file.write(str(soup))
             logging.error('Sample saved to {filename}'.format(filename=uuid_filename))
-            traceback.print_exc()
-            raise e
+            raise
 
     return wrapper
 
@@ -44,7 +45,7 @@ class Parser(object):
 
     def __init__(self):
         u"""Constructer."""
-        self._weibo_url_pattern = re.compile(r'\/(?P<user_id>\d+)\/(?P<mid>[0-9a-zA-Z]+)')
+        self._weibo_url_pattern = re.compile(r'weibo\.com\/(?P<uid>\d*)\/(?P<mid>[0-9a-zA-Z]+)')  # 被删除的微博id为空
         self._embed_html_pattern = re.compile(r'\"html\":\"((?:[^"\\]|\\.)*)\"')
 
     @classmethod
@@ -93,6 +94,10 @@ class Parser(object):
             mid /= 10000000
         return result
 
+    @classmethod
+    def get_soup(cls, text):
+        return BeautifulSoup(text, 'lxml')
+
     def parse_weibo_url(self, text):
         u"""
         将微博url分解为 uid 和 mid 部分.
@@ -103,7 +108,7 @@ class Parser(object):
         """
         groups = self._weibo_url_pattern.search(text)
         if groups:
-            return groups.group('user_id'), groups.group('mid')
+            return groups.group('uid'), groups.group('mid')
         else:
             return None, None
 
@@ -127,7 +132,7 @@ class Parser(object):
         """
         time_and_url = soup.find(date=True)
         pageurl = time_and_url.attrs['href']
-        timestamp = int(time_and_url.attrs['date'])
+        timestamp = int(time_and_url.attrs['date']) if time_and_url.attrs['date'] else None
         links = soup.findAll('a')
         device = links[1].text if len(links) > 1 else None
         return pageurl, timestamp, device
@@ -226,14 +231,15 @@ class Parser(object):
                 forward_weibo = self.extract_forward_content(soup=forward_soup, decompose=True)
                 weibo.update(forward_tweet=forward_weibo)
 
-        # 昵称
-        nickname = soup.find(**{'nick-name': True}).attrs['nick-name']
-        weibo.update(nickname=nickname)
-
         # 链接,时间,设备
         wb_from = soup.find(class_='WB_from') or soup.find(class_='feed_from')
         pageurl, timestamp, device = self.parse_time_url_device(wb_from)
         user_id, mid = self.parse_weibo_url(pageurl)
+        if not user_id:  # 已删除
+            weibo.update(uid=0, mid=mid)
+            if decompose:
+                soup.decompose()
+            return weibo
         weibo.update(
             pageurl=pageurl,
             timestamp=timestamp,
@@ -241,6 +247,10 @@ class Parser(object):
             uid=user_id,
             mid=mid
         )
+
+        # 昵称
+        nickname = soup.find(**{'nick-name': True}).attrs['nick-name']
+        weibo.update(nickname=nickname)
 
         # 转发,评论,赞
         wb_handle = soup.find(class_='WB_handle') or soup.find(class_='feed_action')

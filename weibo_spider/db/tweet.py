@@ -54,6 +54,8 @@ class TweetDAO(Singleton):
         self.session = self.engine.session
 
     def save_tweetp(self, tweetp):
+        if not tweetp.uid:
+            return None
         tweet = Tweet(
             fetch_timestamp=tweetp.fetch_timestamp,
             uid=tweetp.uid,
@@ -73,10 +75,12 @@ class TweetDAO(Singleton):
             tweet.forward_mid = tweetp.forward_tweet.mid
         self.session.add(tweet)
         self.session.commit()
-        tweet
+        return tweet
 
     def update_or_create_tweetp(self, tweetp):
         created = False
+        if not tweetp.uid:
+            return created, None
         tweet = self.session.query(Tweet).filter(
             Tweet.mid == tweetp.mid).one_or_none()
         if tweet:
