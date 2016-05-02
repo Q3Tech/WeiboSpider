@@ -2,3 +2,5 @@
 rawdata/
 samples/
 weibo_spider/settings.py
+debug.log
+handles.txt
