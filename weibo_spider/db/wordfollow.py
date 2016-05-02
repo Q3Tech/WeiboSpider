@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-u"""Weibo."""
+"""Weibo."""
 from sqlalchemy import Column, Integer, String, BIGINT
 
-from db_engine import Base
-from db_engine import DBEngine
+from .db_engine import Base
+from .db_engine import DBEngine
 
 from core import Singleton
 
 
 class WordFollow(Base):
-    u"""
+    """
     表示对一个搜索关键词的跟踪
 
     """

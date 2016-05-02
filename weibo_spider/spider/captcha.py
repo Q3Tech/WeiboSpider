@@ -8,7 +8,7 @@ import os
 
 
 class CaptchaDecoder(object):
-    u"""验证码识别基类."""
+    """验证码识别基类."""
 
     def __init__(self):
         self._sample_path = os.path.join(settings.SAMPLES_DIR, 'captcha')
@@ -31,7 +31,7 @@ class CaptchaDecoder(object):
 
 
 class VerifyBotAdapter(CaptchaDecoder):
-    u"""VerifyBOT Adapter."""
+    """VerifyBOT Adapter."""
 
     def __init__(self, url=None):
         super(VerifyBotAdapter, self).__init__()
@@ -48,7 +48,7 @@ class VerifyBotAdapter(CaptchaDecoder):
 
 
 class RuokuaiAdapter(CaptchaDecoder):
-    u"""若快答题适配器"""
+    """若快答题适配器"""
     def __init__(self, ruokuai_settings=None):
         super(RuokuaiAdapter, self).__init__()
         if not ruokuai_settings:

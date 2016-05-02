@@ -8,7 +8,7 @@ from celery import Celery
 from celery import bootsteps
 from kombu import Consumer, Exchange, Queue
 
-from manul_login_app import LoginExecuter
+from .manul_login_app import LoginExecuter
 from db.db_engine import AccountDAO
 
 my_queue = Queue('weibo_login', Exchange('weibo_login'), 'weibo_login')
@@ -34,7 +34,7 @@ class LoginTaskHandler(bootsteps.ConsumerStep):
         body = json.loads(body)
         assert 'username' in body
         assert 'password' in body
-        print body
+        print(body)
         resp = self.login_executer.login(body['username'], body['password'])
         if not resp:
             return

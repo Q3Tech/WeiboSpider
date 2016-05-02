@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import thread
+import _thread
 import time
 import logging
 
-from spider import Spider
+from .spider import Spider
 from db.wordfollow import WordFollowDAO
 from db.account import AccountDAO
 
 
 class WordFollower(object):
-    u"""用于跟踪某一关键词的爬虫封装."""
+    """用于跟踪某一关键词的爬虫封装."""
 
     def __init__(self, word, account=None):
         self.wordfollow_dao = WordFollowDAO()
@@ -19,14 +19,14 @@ class WordFollower(object):
         if not account:
             account_dao = AccountDAO()
             account = account_dao.get_random_account()
-        print account
+        print(account)
         self.account = account
         self.spider = Spider(account=self.account, rawdata_dao=True, tweet_dao=True)
         self.running = True
         self.fetch_interval = 30
 
     def start_follow(self):
-        thread.start_new_thread(self.follow_worker, ())
+        _thread.start_new_thread(self.follow_worker, ())
 
     def __update(self):
         it = self.spider.fetch_search_iter(keyword=self.wordfollow.word)
@@ -39,7 +39,7 @@ class WordFollower(object):
             logging.info('__update page {0}.'.format(page))
             for weibo in weibos:
                 if weibo.timestamp >= newest_ts:  # New
-                    print weibo.pretty()
+                    print(weibo.pretty())
                     num_new += 1
                 max_ts = max(max_ts, weibo.timestamp)
                 min_ts = min(min_ts, weibo.timestamp)
@@ -65,7 +65,6 @@ class WordFollower(object):
             fetch_interval = min(300, max(20, fetch_interval))
             self.fetch_interval = int(fetch_interval)
             word = self.wordfollow.word
-            word = word.encode('utf-8') if isinstance(word, unicode) else word
             logging.info('WordFollower {0} got {1} new, and going to sleep {2} seconds.'.format(
                 word, num_new, self.fetch_interval))
             time.sleep(self.fetch_interval)

@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-u"""Weibo."""
+"""Weibo."""
 from sqlalchemy import Column, Integer, String, Boolean, TEXT, BIGINT
 
-from db_engine import Base
-from db_engine import DBEngine
+from .db_engine import Base
+from .db_engine import DBEngine
 
 from core import Singleton
 
 
 class Tweet(Base):
-    u"""
+    """
     表示一条新浪微博.
 
     id: 主键

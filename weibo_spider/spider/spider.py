@@ -6,17 +6,18 @@ import re
 import requests
 import logging
 import random
-import urllib
+import urllib.request
+import urllib.parse
+import urllib.error
 import time
-import urlparse
 
 from db import Account
 from db import AccountDAO
 from db import RawDataDAO
 from db import TweetDAO
-from parser import Parser
-from tweetp import TweetP
-from captcha import CaptchaDecoderFactory
+from .parser import Parser
+from .tweetp import TweetP
+from .captcha import CaptchaDecoderFactory
 
 
 class LoginFailedException(Exception):
@@ -26,7 +27,7 @@ class LoginFailedException(Exception):
 class Spider(object):
 
     def __init__(self, account, rawdata_dao=None, tweet_dao=None):
-        u"""
+        """
         爬虫类， 每个使用一个账户.
 
         account: Account 对象
@@ -123,7 +124,7 @@ class Spider(object):
         return cond1 is not None and cond2 is not None
 
     def handle_captcha(self, body, content_type):
-        print "handle_captcha!"
+        print("handle_captcha!")
         return self.capthca_decoder.decode(body, content_type)
 
     def check_captcha(self, resp):
@@ -131,16 +132,16 @@ class Spider(object):
         text = resp.text
         if text.find('yzm_submit') != -1 \
            and text.find('yzm_input') != -1:
-            print "Got a captcha!"
+            print("Got a captcha!")
             for html in self.parser.embed_html_iter(text):
                 g = re.search(r'<img\ssrc=\"(?P<src>[^\"]*?)\"\snode-type=\"yzm_img\">', html)
-                url = urlparse.urljoin(resp.url, g.group('src'))
-                _type = urlparse.parse_qs(urlparse.urlsplit(url).query)['type']
+                url = urllib.parse.urljoin(resp.url, g.group('src'))
+                _type = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)['type']
                 img_resp = self.s.get(url)
                 code = self.handle_captcha(img_resp.content, img_resp.headers['Content-Type'])
-                print 'Captcha code is {0}'.format(code)
-                post_url = urlparse.urljoin(resp.url,
-                                            '/ajax/pincode/verified?__rnd={0}'.format(int(time.time() * 1000)))
+                print('Captcha code is {0}'.format(code))
+                post_url = urllib.parse.urljoin(resp.url,
+                                                '/ajax/pincode/verified?__rnd={0}'.format(int(time.time() * 1000)))
                 resp_n = self.s.post(
                     url=post_url,
                     headers={
@@ -167,7 +168,7 @@ class Spider(object):
         处理长时间未登录后登陆的流程
         """
         def encodeURIComponent(s):
-            return urllib.quote(str(s))
+            return urllib.parse.quote(s)
 
         url = 'https://passport.weibo.com/visitor/visitor?a=restore&cb=restore_back&from=weibo&_rand='
         url += '%.16f' % random.random()
@@ -252,7 +253,7 @@ class Spider(object):
         pass
 
     def fetch_search(self, keyword, page=1):
-        quote_keyword = urllib.quote(urllib.quote(keyword))  # quote 两次
+        quote_keyword = urllib.parse.quote(urllib.parse.quote(keyword))  # quote 两次
         if page == 1:
             url = 'http://s.weibo.com/weibo/{quote}&nodup=1'.format(quote=quote_keyword)
             referer = 'http://s.weibo.com/weibo/{quote}?topnav=1&wvr=6'.format(quote=quote_keyword)
@@ -264,9 +265,7 @@ class Spider(object):
         return weibos
 
     def fetch_search_iter(self, keyword, start_page=1):
-        if isinstance(keyword, unicode):
-            keyword = keyword.encode('utf-8')
-        quote_keyword = urllib.quote(urllib.quote(keyword))  # quote 两次
+        quote_keyword = urllib.parse.quote(urllib.parse.quote(keyword))  # quote 两次
         page = start_page - 1
         assert(page >= 0)
         next_url = None
@@ -286,7 +285,7 @@ class Spider(object):
             weibos += _weibos
             self.save_weibo(weibos)
             yield weibos, page, next_url is not None
-            print 'next_url', next_url
+            print('next_url', next_url)
             if not next_url:
                 break
 
@@ -300,9 +299,9 @@ class Spider(object):
                     target = item
             return re.search(r'Pl_Third_App__\d+', target).group(0)
 
-        if isinstance(keyword, unicode):
+        if isinstance(keyword, str):
             keyword = keyword.encode('utf-8')
-        url = 'http://huati.weibo.com/k/{quote}?from=501'.format(quote=urllib.quote(keyword))
+        url = 'http://huati.weibo.com/k/{quote}?from=501'.format(quote=urllib.parse.quote(keyword))
         page = 0
         referer = None
         pl_name = None
@@ -318,8 +317,8 @@ class Spider(object):
             domain = re.search(r'\$CONFIG\[\'domain\'\]=\'(\d+)\';', resp.text).group(1)
             page_id = re.search(r'\$CONFIG\[\'page_id\'\]=\'(\w+)\';', resp.text).group(1)
             referer = resp.url
-            main_url_parsed = urlparse.urlparse(str(resp.url))
-            params_main = urlparse.parse_qs(main_url_parsed.query)
+            main_url_parsed = urllib.parse.urlparse(str(resp.url))
+            params_main = urllib.parse.parse_qs(main_url_parsed.query)
             params_main['script_uri'] = main_url_parsed.path
 
             resps = []
@@ -360,7 +359,7 @@ class Spider(object):
             self.save_weibo(weibos)
             yield weibos, page, next_url is not None
             if next_url:
-                url = urlparse.urljoin(referer, next_url)
+                url = urllib.parse.urljoin(referer, next_url)
             else:
                 break
 

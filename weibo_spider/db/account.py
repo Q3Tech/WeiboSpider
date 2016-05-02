@@ -3,19 +3,19 @@
 # @Date:   2016-04-20 01:53:03
 # @Last Modified by:   Comzyh
 # @Last Modified time: 2016-04-20 02:08:57
-u"""Weibo Account."""
+"""Weibo Account."""
 from sqlalchemy import Column, Integer, String, Boolean, DATETIME, TEXT
 from sqlalchemy.sql.expression import false, true
 from sqlalchemy.sql.expression import func
 
-from db_engine import Base
-from db_engine import DBEngine
+from .db_engine import Base
+from .db_engine import DBEngine
 
 from core import Singleton
 
 
 class Account(Base):
-    u"""
+    """
     表示爬虫账户.
 
     id:
@@ -36,12 +36,12 @@ class Account(Base):
     cookies = Column(TEXT)
 
     def __repr__(self):
-        u"""__repr__."""
+        """__repr__."""
         return "<Account: %s>" % self.email
 
 
 class AccountDAO(Singleton):
-    u"""用于操纵Account数据的类."""
+    """用于操纵Account数据的类."""
 
     def __init__(self):
         self.engine = DBEngine()
@@ -69,8 +69,8 @@ class AccountDAO(Singleton):
                 Account.email == kwargs['email']).one_or_none()
 
         if account:
-            print kwargs
-            for k, v in kwargs.iteritems():
+            print(kwargs)
+            for k, v in kwargs.items():
                 setattr(account, k, v)
         else:
             created = True

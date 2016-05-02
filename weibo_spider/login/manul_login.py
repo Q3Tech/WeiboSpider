@@ -49,7 +49,7 @@ class LoginExecuter(object):
             # self.browser.get("http://passport.weibo.com/js/visitor/mini.js")
             self.browser.get("https://passport.weibo.com/visitor/")
             for cookie in self.browser.get_cookies():
-                print cookie['domain']
+                print(cookie['domain'])
                 if cookie['domain'].find('passport.weibo.com') != -1:
                     cookies.append(cookie)
         except Exception:
@@ -71,7 +71,7 @@ def import_account_from_file(filename):
         _, created = account_dao.update_or_create(email=email, password=password)
         if created:
             create_num += 1
-    print ('{line} lines, {created} created.'.format(line=line_num, created=create_num))
+    print('{line} lines, {created} created.'.format(line=line_num, created=create_num))
 
 
 def login(login_executer, email, password):

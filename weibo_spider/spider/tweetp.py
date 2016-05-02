@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-u"""定义处理过的微博的数据结构."""
+"""定义处理过的微博的数据结构."""
 
 import datetime
 import time
 
 
 class TweetP(object):
-    u"""parsed Tweet."""
+    """parsed Tweet."""
 
     def __init__(self, fetch_time=None):
-        u"""构造函数."""
+        """构造函数."""
         self._dict = {}  # 存储数据
         self.fetch_timestamp = int(time.time() * 1000)
         self.uid = None  # 用户id
@@ -30,16 +30,14 @@ class TweetP(object):
         self.forward_tweet = None  # TweetP 对象,转发的微博
 
     def update(self, **kwargs):
-        u"""更新操作, 对参数合法性进行检查."""
-        for k, v in kwargs.iteritems():
+        """更新操作, 对参数合法性进行检查."""
+        for k, v in kwargs.items():
             if v is None:
                 continue
             if k in ('uid', 'timestamp', 'share', 'comment', 'like', 'fetch_timestamp'):
                 self.__setattr__(k, int(v))
             elif k in ('mid', 'pageurl', 'raw_html', 'text', 'location', 'device', 'nickname'):
-                assert(isinstance(v, basestring))
-                if isinstance(v, str):
-                    v = v.decode('utf-8')
+                assert(isinstance(v, str))
                 self.__setattr__(k, v)
             elif k in ('isforward'):
                 assert(isinstance(v, bool))
@@ -52,14 +50,14 @@ class TweetP(object):
                 self._dict[k] = v
 
     def pretty(self):
-        u"""以人类可读格式格式化weibo数组."""
-        r = u'{uid}/{mid}\n'.format(uid=self.uid, mid=self.mid)
+        """以人类可读格式格式化weibo数组."""
+        r = '{uid}/{mid}\n'.format(uid=self.uid, mid=self.mid)
         r += self.nickname + ' | '
         r += datetime.datetime.fromtimestamp(self.timestamp / 1000).strftime("%Y-%m-%d %H:%M:%S")
         if self.location and len(self.location):
-            r += u' @{location}'.format(location=self.location)
+            r += ' @{location}'.format(location=self.location)
         if self.device and len(self.device):
-            r += u' By {device}'.format(device=self.device)
+            r += ' By {device}'.format(device=self.device)
         r += '\n'
         r += self.text
         r += '\n'

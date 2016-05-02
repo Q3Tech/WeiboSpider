@@ -18,16 +18,16 @@ Base = declarative_base()
 class DBEngine(Singleton):
 
     def __init__(self):
-        self.connect_string = 'mysql://{user}:{password}@{host}/{database}?charset=utf8mb4'.format(
+        self.connect_string = 'mysql+pymysql://{user}:{password}@{host}/{database}?charset=utf8mb4'.format(
             **settings.MYSQL_SETTINGS)
-        print self.connect_string
+        print(self.connect_string)
         __engine = create_engine(self.connect_string, echo=False)
         self.engine = __engine.connect()
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
 
     def create_db(self):
-            u"""建立数据库."""
+            """建立数据库."""
             Base.metadata.create_all(self.engine)
 
 if __name__ == '__main__':
