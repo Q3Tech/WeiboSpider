@@ -168,10 +168,9 @@ class Spider(object):
         处理长时间未登录后登陆的流程
         """
         def encodeURIComponent(s):
-            return urllib.parse.quote(s)
-
+            return urllib.parse.quote(str(s))
         url = 'https://passport.weibo.com/visitor/visitor?a=restore&cb=restore_back&from=weibo&_rand='
-        url += '%.16f' % random.random()
+        url += '%.15g' % random.random()
         logging.info('restore1 new_url: {url}'.format(url=url))
         resp = self.s.get(url=url, headers={
             'Referer': former_resp.url
@@ -188,6 +187,7 @@ class Spider(object):
             logging.exception('restore failed!')
             logging.info(resp.text)
             return False
+
         alt = json_resp['data']['alt']
         if alt != '':
             savestate = json_resp['data']['savestate']
@@ -202,7 +202,7 @@ class Spider(object):
             url = "http://login.sina.com.cn/visitor/visitor?a=crossdomain&cb=return_back&s="
             url += encodeURIComponent(json_resp["data"]["sub"])
             url += "&sp=" + encodeURIComponent(json_resp["data"]["subp"])
-            url += "&from=" + "weibo" + "&_rand=" + '%.16f' % random.random()
+            url += "&from=" + "weibo" + "&_rand=" + '%.15g' % random.random()
 
         logging.info('restore2 new_url: {url}'.format(url=url))
         resp = self.s.get(url, headers={'Referer': resp.url})
@@ -234,6 +234,7 @@ class Spider(object):
                 continue
             if self.check_relogin(resp):
                 logging.info("Fetching encounter relogin:\n")
+                logging.info("URL: {0}\n".format(resp.url))
                 resp = self.relogin(resp)
                 if not resp:
                     logging.info('Fetch: relogin Failed')
@@ -371,7 +372,7 @@ class Spider(object):
             import settings
             import uuid
             filename = os.path.join(settings.SAMPLES_DIR, str(uuid.uuid4()) + '.html')
-        with open(filename, 'w') as file:
+        with open(filename, 'wb') as file:
             file.write(resp.content)
 
     def save_weibo(self, weibos):

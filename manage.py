@@ -23,11 +23,12 @@ def get_praser():
     # db
     _db = subparsers.add_parser('db', help='Shell service')
     _db.add_argument('--create-table', help='create-table', nargs='*')
-    return parser
 
     # spider
     _spider = subparsers.add_parser('spider', help='Spider')
-    _spider.add_argument('--demon', help='run as demon', action='store_true')
+    _spider.add_argument('-d', '--demon', help='run as demon', action='store_true')
+
+    return parser
 
 
 def main():
@@ -54,7 +55,9 @@ def main():
             db_engine.create_db()
 
     elif args.subcommand == 'spider':
-        pass
+        if args.demon:
+            from spider.worker import SpiderWorker
+            SpiderWorker()
 
 if __name__ == '__main__':
     main()

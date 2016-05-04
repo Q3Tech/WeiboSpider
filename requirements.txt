@@ -3,3 +3,6 @@ SQLAlchemy==1.0.12
 PyMySQL==0.7.2
 requests==2.9.1
 plyvel==0.9
+aioamqp==0.7.0
+python-consul==0.6.0
+

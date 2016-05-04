@@ -14,9 +14,14 @@ from db import AccountDAO
 class LoginExecuter(object):
     """docstring for LoginExecuter"""
 
-    def __init__(self):
+    def __init__(self, proxy=None):
         super(LoginExecuter, self).__init__()
-        self.browser = webdriver.Chrome()
+        if proxy:
+            chrome_options = webdriver.ChromeOptions()
+            chrome_options.add_argument('--proxy-server=%s' % proxy)
+            self.browser = webdriver.Chrome(chrome_options=chrome_options)
+        else:
+            self.browser = webdriver.Chrome()
 
     def login(self, username, password):
         # 整体操作太容易出错了
