@@ -51,8 +51,19 @@ class AccountDAO(Singleton):
         for account in self.session.query(Account).filter(Account.is_login == false()):
             yield account
 
+    def account_iter(self):
+        for account in self.session.query(Account):
+            yield account
+
     def get_or_create(self, *args, **kwargs):
-        pass
+        assert 'id' in kwargs or 'email' in kwargs
+        if 'id' in kwargs:
+            account = self.session.query(Account).filter(
+                Account.id == kwargs['id']).one_or_none()
+        elif 'email' in kwargs:
+            account = self.session.query(Account).filter(
+                Account.email == kwargs['email']).one_or_none()
+        return account
 
     def update_or_create(self, *args, **kwargs):
         """

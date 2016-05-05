@@ -28,6 +28,10 @@ def get_praser():
     _spider = subparsers.add_parser('spider', help='Spider')
     _spider.add_argument('-d', '--demon', help='run as demon', action='store_true')
 
+    # scheduler
+    _scheduler = subparsers.add_parser('scheduler', help='Scheduler')
+    _scheduler.add_argument('-d', '--demon', help='run as demon', action='store_true')
+
     return parser
 
 
@@ -58,6 +62,10 @@ def main():
         if args.demon:
             from spider.worker import SpiderWorker
             SpiderWorker()
+    elif args.subcommand == 'scheduler':
+        if args.demon:
+            from scheduler.scheduler import Scheduler
+            Scheduler()
 
 if __name__ == '__main__':
     main()

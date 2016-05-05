@@ -34,6 +34,13 @@ class Spider(object):
         rawdata_dao: RawDataDAO
         tweet_dao: TweetDAO
         """
+        self.logger = logging.getLogger('Spider')
+        hdr = logging.StreamHandler()
+        formatter = logging.Formatter('[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
+        hdr.setFormatter(formatter)
+        self.logger.addHandler(hdr)
+        self.logger.setLevel(logging.INFO)
+
         assert isinstance(account, Account)
         if rawdata_dao:
             if rawdata_dao is True:
@@ -55,10 +62,11 @@ class Spider(object):
         self.parser = Parser()
         self.fetch('http://weibo.com/')
         self.capthca_decoder = CaptchaDecoderFactory('Ruokuai')()
+        self.logger.info('Spider {0} initialize successful.'.format(self.account.email))
 
     def __del__(self):
         self.save_cookies()
-        logging.info('Destory spider {email}.'.format(email=self.account.email))
+        self.logger.info('Destory spider {email}.'.format(email=self.account.email))
 
     def __repr__(self):
         return "<Spider: %s>" % self.account.email
@@ -171,12 +179,12 @@ class Spider(object):
             return urllib.parse.quote(str(s))
         url = 'https://passport.weibo.com/visitor/visitor?a=restore&cb=restore_back&from=weibo&_rand='
         url += '%.15g' % random.random()
-        logging.info('restore1 new_url: {url}'.format(url=url))
+        self.logger.info('restore1 new_url: {url}'.format(url=url))
         resp = self.s.get(url=url, headers={
             'Referer': former_resp.url
         })
         if resp.status_code != 200:
-            logging.info('restore failed! status_code != 200')
+            self.logger.info('restore failed! status_code != 200')
             return False
         try:
             groups = re.search(r'restore_back\((?P<json>.*?)\);', resp.text)
@@ -184,8 +192,8 @@ class Spider(object):
             assert(json_resp['retcode'] == 20000000)
             assert(json_resp['data'])
         except Exception:
-            logging.exception('restore failed!')
-            logging.info(resp.text)
+            self.logger.exception('restore failed!')
+            self.logger.info(resp.text)
             return False
 
         alt = json_resp['data']['alt']
@@ -196,7 +204,7 @@ class Spider(object):
             params += "&returntype=META" + "&gateway=1&savestate=" + encodeURIComponent(savestate) + requrl
             url = r'http://login.sina.com.cn/sso/login.php?' + params
         else:  # cross_domain
-            logging.info('cross_domain')
+            self.logger.info('cross_domain')
             self.handle_login_failed()
             return False
             url = "http://login.sina.com.cn/visitor/visitor?a=crossdomain&cb=return_back&s="
@@ -204,17 +212,17 @@ class Spider(object):
             url += "&sp=" + encodeURIComponent(json_resp["data"]["subp"])
             url += "&from=" + "weibo" + "&_rand=" + '%.15g' % random.random()
 
-        logging.info('restore2 new_url: {url}'.format(url=url))
+        self.logger.info('restore2 new_url: {url}'.format(url=url))
         resp = self.s.get(url, headers={'Referer': resp.url})
         try:
             groups = re.search(r'location.replace\(\'(?P<url>.*?)\'\);', resp.text)
             url = groups.group('url')
             assert(url)
         except Exception:
-            logging.exception('restore failed!')
-            logging.info(resp.text)
+            self.logger.exception('restore failed!')
+            self.logger.info(resp.text)
 
-        logging.info('restore3 new_url: {url}'.format(url=url))
+        self.logger.info('restore3 new_url: {url}'.format(url=url))
         resp = self.s.get(url, headers={'Referer': resp.url})
         return resp
 
@@ -228,16 +236,16 @@ class Spider(object):
         while True:
             new_url, reason = self.check_redirect(resp)
             if new_url:  # redierct
-                logging.info("Fetching encounter redirect:\nreason:{reason}\ntarget:{target}\n".format(
+                self.logger.info("Fetching encounter redirect:\nreason:{reason}\ntarget:{target}\n".format(
                     reason=reason, target=new_url))
                 resp = self.s.get(url=new_url)
                 continue
             if self.check_relogin(resp):
-                logging.info("Fetching encounter relogin:\n")
-                logging.info("URL: {0}\n".format(resp.url))
+                self.logger.info("Fetching encounter relogin:\n")
+                self.logger.info("URL: {0}\n".format(resp.url))
                 resp = self.relogin(resp)
                 if not resp:
-                    logging.info('Fetch: relogin Failed')
+                    self.logger.info('Fetch: relogin Failed')
                     break
                 self.save_cookies()
                 resp = self.s.get(url=url, headers={'Referer': referer})
@@ -273,7 +281,7 @@ class Spider(object):
         while True:
             page += 1
             weibos = []
-            logging.info('Fetching search page {page}'.format(page=page))
+            self.logger.info('Fetching search page {page}'.format(page=page))
             if page == 1:
                 url = 'http://s.weibo.com/weibo/{quote}&nodup=1'.format(quote=quote_keyword)
                 referer = 'http://s.weibo.com/weibo/{quote}?topnav=1&wvr=6'.format(quote=quote_keyword)
@@ -309,7 +317,7 @@ class Spider(object):
         while True:
             page += 1
             weibos = []
-            logging.info('Topic: fetching page {page}'.format(page=page))
+            self.logger.info('Topic: fetching page {page}'.format(page=page))
             if not referer:
                 resp = self.fetch(url=url)
             else:
@@ -348,7 +356,7 @@ class Spider(object):
                 params.update(lazyload['action-data'])
                 params['page'] = params.get('page', 1)
                 params['pre_page'] = params.get('pre_page', params['page'])
-                logging.info('Topic lazyload:')
+                self.logger.info('Topic lazyload:')
                 resp = self.s.get(url=url, params=params, headers={
                     'X-Requested-With': 'XMLHttpRequest',
                     'Content-Type': 'application/x-www-form-urlencoded',
