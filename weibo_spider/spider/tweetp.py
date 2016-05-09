@@ -6,9 +6,18 @@
 import datetime
 import time
 
+from core import JsonSerializable
 
-class TweetP(object):
+
+class TweetP(JsonSerializable):
     """parsed Tweet."""
+
+    _keys = (
+        'fetch_timestamp', 'uid', 'mid', 'nickname', 'pageurl',
+        'pageurl', 'raw_html', 'timestamp', 'timestamp', 'device',
+        'location', 'text', 'share', 'comment', 'like', 'isforward',
+        'forward_tweet',
+        )
 
     def __init__(self, fetch_time=None):
         """构造函数."""
@@ -66,3 +75,9 @@ class TweetP(object):
         r += '{share} share | {comment} comment | {like} like'.format(
             share=self.share, comment=self.comment, like=self.like)
         return r
+
+    def to_json_dict(self):
+        json_dict = {}
+        for key in self._keys:
+            json_dict[key] = self.__getattribute__(key)
+        return json_dict
