@@ -48,15 +48,8 @@ class Scheduler(object):
 
         tasks = [
             self.recycle(),
-            self.__aioamqp_heartbeat_patch(),
         ]
         await asyncio.wait(tasks)
-
-    async def __aioamqp_heartbeat_patch(self):
-        while True:
-            print('try to send heartbeat.')
-            await mq_connection.protocol.heartbeat()
-            await asyncio.sleep(mq_connection.protocol.server_heartbeat)
 
     def load_accounts(self):
         for account in self.account_dao.account_iter():

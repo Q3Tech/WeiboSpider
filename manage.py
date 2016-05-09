@@ -67,6 +67,8 @@ def main():
     elif args.subcommand == 'scheduler':
         if args.demon:
             from scheduler.scheduler import Scheduler
+            from scheduler.datacollecter import DataCollecter
+            DataCollecter()
             Scheduler()
 
 if __name__ == '__main__':

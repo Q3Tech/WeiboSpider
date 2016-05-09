@@ -54,9 +54,7 @@ class TweetP(JsonSerializable):
             elif k == 'forward_tweet':
                 assert(isinstance(v, TweetP) or isinstance(v, dict))
                 if isinstance(v, dict):
-                    t = TweetP()
-                    t.update(v)
-                    v = t
+                    v = TweetP.from_json_dict(v)
                 self.forward_tweet = v
                 self.isforward = True
             else:
@@ -85,3 +83,10 @@ class TweetP(JsonSerializable):
         for key in self._keys:
             json_dict[key] = self.__getattribute__(key)
         return json_dict
+
+    @classmethod
+    def from_json_dict(cls, value):
+        assert(isinstance(value, dict))
+        weibo = TweetP()
+        weibo.update(**value)
+        return weibo

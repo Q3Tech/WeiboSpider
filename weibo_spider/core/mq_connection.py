@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 import aioamqp
 import settings
+import asyncio
 
 connection = None
 protocol = None
+__aioamqp_heartbeat_patch_timer = None
 
 async def declare_queues(channel):
     """声明所有的公用队列."""
@@ -31,13 +33,24 @@ async def declare_queues(channel):
 
 async def disconnected(exception):
     global connection, protocol
+    global __aioamqp_heartbeat_patch_timer
     connection = None
     protocol = None
+    __aioamqp_heartbeat_patch_timer.set_result(None)
+    __aioamqp_heartbeat_patch_timer = None
     print(exception)
     raise exception
 
+async def __aioamqp_heartbeat_patch():
+    global protocol
+    while True:
+        print('try to send heartbeat.')
+        await protocol.heartbeat()
+        await asyncio.sleep(protocol.server_heartbeat)
+
 async def get_channel():
     global connection, protocol
+    global __aioamqp_heartbeat_patch_timer
     if not connection or not protocol:
         try:
             connection, protocol = await aioamqp.connect(
@@ -46,9 +59,10 @@ async def get_channel():
                 on_error=disconnected,
                 # heartbeat=20,
             )
+            __aioamqp_heartbeat_patch_timer = asyncio.ensure_future(__aioamqp_heartbeat_patch())
         except aioamqp.AmqpClosedConnection as e:
             await disconnected(e)
             raise
-        channel = await protocol.channel()
-        await declare_queues(channel)
+    channel = await protocol.channel()
+    await declare_queues(channel)
     return channel

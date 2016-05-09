@@ -14,7 +14,6 @@ from .spider import Spider
 from .spider import LoginFailedException
 
 
-
 class SpiderWorker(object):
 
     def __init__(self):
