@@ -8,9 +8,11 @@ import consul.aio
 import uuid
 import json
 from core.mq_connection import get_channel
+from core import JsonSerializableEncoder
 from db import Account
 from .spider import Spider
 from .spider import LoginFailedException
+
 
 
 class SpiderWorker(object):
@@ -84,6 +86,7 @@ class SpiderWorker(object):
         if body['type'] == 'update_word_follow':
             self.logger.info('Got a update_word_follow task!')
             await self.update_word_follow(body['keyword'], body['newest_ts'])
+            await channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
 
     async def update_word_follow(self, keyword, newest_ts):
         it = self.spider.fetch_search_iter(keyword=keyword)
@@ -101,15 +104,26 @@ class SpiderWorker(object):
                 min_ts = min(min_ts, weibo.timestamp)
             self.logger.info("min_ts={min_ts}, max_ts={max_ts}, newest_ts={newest_ts}.".format(
                 min_ts=min_ts, max_ts=max_ts, newest_ts=newest_ts))
+            await self.save_weibo_data(weibos)
             if min_ts < newest_ts:
                 self.logger.info('break __update.')
                 break
             # if page % 10 == 0:
             #     time.sleep(10)
-        # self.wordfollow.newest_timestamp = max(self.wordfollow.newest_timestamp, max_ts)
-        # self.wordfollow_dao.commit()
         print('got {0} new.'.format(num_new))
         return num_new
+
+    async def save_weibo_data(self, weibos):
+        playload = json.dumps(weibos, cls=JsonSerializableEncoder)
+        self.logger.debug('sending weibo to queue weibo_data')
+        await self.channel.basic_publish(
+            payload=playload,
+            exchange_name='amq.direct',
+            routing_key='weibo_data',
+            properties={
+                'delivery_mode': 2,
+            },
+        )
 
     async def bind_account(self, account, cookies):
         _account = Account()

@@ -52,7 +52,11 @@ class TweetP(JsonSerializable):
                 assert(isinstance(v, bool))
                 self.__setattr__(k, v)
             elif k == 'forward_tweet':
-                assert(isinstance(v, TweetP))
+                assert(isinstance(v, TweetP) or isinstance(v, dict))
+                if isinstance(v, dict):
+                    t = TweetP()
+                    t.update(v)
+                    v = t
                 self.forward_tweet = v
                 self.isforward = True
             else:

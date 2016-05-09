@@ -6,6 +6,7 @@ connection = None
 protocol = None
 
 async def declare_queues(channel):
+    """声明所有的公用队列."""
 
     # worker_heartbeat
     await channel.queue_declare(queue_name='worker_heartbeat', durable=False)

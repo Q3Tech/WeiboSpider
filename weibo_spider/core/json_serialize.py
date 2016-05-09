@@ -14,7 +14,7 @@ class JsonSerializable(object):
         raise NotImplementedError
 
 
-class SerializableEncoder(JSONEncoder):
+class JsonSerializableEncoder(JSONEncoder):
     """当类继承JsonSerializable时,使用该类序列化."""
     def default(self, obj):
         if isinstance(obj, JsonSerializable):
