@@ -28,6 +28,8 @@ class SpiderWorker(object):
         self.id = str(uuid.uuid4())
         self.logger.info('Worker id: {0}'.format(self.id))
         self.account = None
+        self.spider = None
+        self.task_consume_tag = None
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.init())
         loop.run_forever()
@@ -36,23 +38,12 @@ class SpiderWorker(object):
         self.consul = consul.aio.Consul()
         self.channel = await get_channel()
 
-        # Register
-        await self.channel.queue_declare(queue_name='worker_heartbeat', durable=False)
-        await self.channel.queue_bind(
-            queue_name='worker_heartbeat', exchange_name='amq.direct', routing_key='worker_heartbeat')
-
-        # worker_report
-        await self.channel.queue_declare(queue_name='worker_report', durable=False)
-        await self.channel.queue_bind(
-            queue_name='worker_report', exchange_name='amq.direct', routing_key='worker_report')
-
         # exclusive
         self.exclusive = (await self.channel.queue_declare('', exclusive=True))['queue']
         self.logger.info('Exclusive queue: {0}'.format(self.exclusive))
         await self.channel.basic_consume(queue_name=self.exclusive, callback=self.handle_exclusive)
 
         # tasks
-
         tasks = [
             self.update_alive(),
         ]
@@ -68,6 +59,7 @@ class SpiderWorker(object):
                 'type': 'heartbeat',
                 'id': self.id,
                 'account': self.account,
+                'cookies': self.spider.get_cookies_json() if self.spider else None,
             })
             await self.channel.basic_publish(
                 payload=playload,
@@ -83,7 +75,41 @@ class SpiderWorker(object):
     async def handle_exclusive(self, channel, body, envelope, properties):
         body = json.loads(body.decode('utf-8'))
         if body['type'] == 'bind_account':
+            await self.channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
             await self.bind_account(account=body['account'], cookies=body['cookies'])
+
+    async def handle_task(self, channel, body, envelope, properties):
+        body = json.loads(body.decode('utf-8'))
+        self.logger.info('Got a task of type {0}'.format(body['type']))
+        if body['type'] == 'update_word_follow':
+            self.logger.info('Got a update_word_follow task!')
+            await self.update_word_follow(body['keyword'], body['newest_ts'])
+
+    async def update_word_follow(self, keyword, newest_ts):
+        it = self.spider.fetch_search_iter(keyword=keyword)
+        min_ts = int((time.time() + 3600) * 1000)
+        max_ts = 0
+        num_new = 0
+        self.logger.info('start __update loop.')
+        for weibos, page, _ in it:
+            self.logger.info('__update page {0}.'.format(page))
+            for weibo in weibos:
+                if weibo.timestamp >= newest_ts:  # New
+                    print(weibo.pretty())
+                    num_new += 1
+                max_ts = max(max_ts, weibo.timestamp)
+                min_ts = min(min_ts, weibo.timestamp)
+            self.logger.info("min_ts={min_ts}, max_ts={max_ts}, newest_ts={newest_ts}.".format(
+                min_ts=min_ts, max_ts=max_ts, newest_ts=newest_ts))
+            if min_ts < newest_ts:
+                self.logger.info('break __update.')
+                break
+            # if page % 10 == 0:
+            #     time.sleep(10)
+        # self.wordfollow.newest_timestamp = max(self.wordfollow.newest_timestamp, max_ts)
+        # self.wordfollow_dao.commit()
+        print('got {0} new.'.format(num_new))
+        return num_new
 
     async def bind_account(self, account, cookies):
         _account = Account()
@@ -97,6 +123,8 @@ class SpiderWorker(object):
             self.logger.error('Login Failed')
         else:
             self.account = account
+            self.task_consume_tag = await self.channel.basic_consume(
+                queue_name='worker_task', callback=self.handle_task, no_wait=True)
             self.logger.info('Bind account successful. {}'.format(account))
 
     async def report_login_failed(self, account):

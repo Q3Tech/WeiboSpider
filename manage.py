@@ -40,7 +40,7 @@ def main():
     args = parser.parse_args()
     if args.subcommand == 'shell':
         logging.basicConfig(stream=sys.stdout, level=logging.INFO,
-                            format='[%(asctime)s %(levelname)s] %(message)s')
+                            format='[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
         import IPython
         IPython.embed()
     elif args.subcommand == 'login':
@@ -61,6 +61,8 @@ def main():
     elif args.subcommand == 'spider':
         if args.demon:
             from spider.worker import SpiderWorker
+            logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
+                                format='[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
             SpiderWorker()
     elif args.subcommand == 'scheduler':
         if args.demon:
