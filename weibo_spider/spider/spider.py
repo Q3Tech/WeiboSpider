@@ -97,8 +97,11 @@ class Spider(object):
             ))
         return cookies
 
-    def save_cookies(slef):
-        slef.account.cookies = json.dumps(slef.get_session_cookies(slef.s))
+    def get_cookies_json(self):
+        return json.dumps(self.get_session_cookies(self.s))
+
+    def save_cookies(self):
+        self.account.cookies = json.dumps(self.get_session_cookies(self.s))
         account_dao = AccountDAO()
         account_dao.commit()
 

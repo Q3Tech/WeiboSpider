@@ -6,6 +6,7 @@ import json
 import consul.aio
 import time
 import random
+from core import mq_connection
 from core.mq_connection import get_channel
 from db import AccountDAO
 
@@ -40,30 +41,22 @@ class Scheduler(object):
         self.consul = consul.aio.Consul()
         self.channel = await get_channel()
 
-        # Register
-        await self.channel.queue_declare(queue_name='worker_heartbeat', durable=False)
-        await self.channel.queue_bind(
-            queue_name='worker_heartbeat', exchange_name='amq.direct', routing_key='spiderworker_register')
-
-        # worker_report
-        await self.channel.queue_declare(queue_name='worker_report', durable=False)
-        await self.channel.queue_bind(
-            queue_name='worker_report', exchange_name='amq.direct', routing_key='worker_report')
-
-        # weibo_data
-        await self.channel.queue_declare(queue_name='weibo_data', durable=True)
-        await self.channel.queue_bind(
-            queue_name='weibo_data', exchange_name='amq.direct', routing_key='weibo_data')
-
         self.load_accounts()
 
-        await self.channel.basic_consume(queue_name='worker_heartbeat', callback=self.handle_heartbeat)
-        await self.channel.basic_consume(queue_name='worker_report', callback=self.handle_report)
+        await self.channel.basic_consume(queue_name='worker_heartbeat', callback=self.handle_heartbeat, no_ack=True)
+        await self.channel.basic_consume(queue_name='worker_report', callback=self.handle_report, no_ack=True)
 
         tasks = [
             self.recycle(),
+            self.__aioamqp_heartbeat_patch(),
         ]
         await asyncio.wait(tasks)
+
+    async def __aioamqp_heartbeat_patch(self):
+        while True:
+            print('try to send heartbeat.')
+            await mq_connection.protocol.heartbeat()
+            await asyncio.sleep(mq_connection.protocol.server_heartbeat)
 
     def load_accounts(self):
         for account in self.account_dao.account_iter():
