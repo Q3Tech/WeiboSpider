@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""收集由RabbitMQ回传的微博数据."""
 import logging
 import asyncio
 import json
-import _thread
 
 from core.mq_connection import get_channel
 from spider import TweetP
@@ -12,7 +12,7 @@ from db import TweetDAO
 
 
 class DataCollecter(object):
-
+    """收集由RabbitMQ回传的微博数据."""
     def __init__(self):
         self.logger = logging.getLogger('DataCollecter')
         hdr = logging.StreamHandler()
@@ -24,14 +24,11 @@ class DataCollecter(object):
         self.rawdata_dao = RawDataDAO()
         self.tweet_dao = TweetDAO()
 
-        def loop_in_thread():
+        def start_loop():
             loop = asyncio.get_event_loop()
             loop.run_until_complete(self.init())
-            # loop.run_forever()
-
-        loop_in_thread()
-        # _thread.start_new_thread(loop_in_thread, ())
-        # self.logger.info('Thread started.')
+            loop.run_forever()
+        start_loop()
 
     async def init(self):
         self.channel = await get_channel()

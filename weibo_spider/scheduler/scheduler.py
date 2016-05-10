@@ -6,7 +6,6 @@ import json
 import consul.aio
 import time
 import random
-from core import mq_connection
 from core.mq_connection import get_channel
 from db import AccountDAO
 

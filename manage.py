@@ -68,8 +68,11 @@ def main():
         if args.demon:
             from scheduler.scheduler import Scheduler
             from scheduler.datacollecter import DataCollecter
-            DataCollecter()
-            Scheduler()
+            pid = os.fork()
+            if pid == 0:
+                DataCollecter()
+            else:
+                Scheduler()
 
 if __name__ == '__main__':
     main()
