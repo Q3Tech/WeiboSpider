@@ -35,6 +35,14 @@ def get_praser():
     return parser
 
 
+def config_logger(name, level):
+    logger = logging.getLogger(name)
+    hdr = logging.StreamHandler()
+    formatter = logging.Formatter('[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
+    hdr.setFormatter(formatter)
+    logger.addHandler(hdr)
+    logger.setLevel(level)
+
 def main():
     parser = get_praser()
     args = parser.parse_args()
@@ -68,9 +76,13 @@ def main():
         if args.demon:
             from scheduler.scheduler import Scheduler
             from scheduler.datacollecter import DataCollecter
+            config_logger('WordFollower', logging.DEBUG)
+            config_logger('Scheduler', logging.DEBUG)
+            config_logger('DataCollecter', logging.INFO)
             pid = os.fork()
             if pid == 0:
                 DataCollecter()
+                pass
             else:
                 Scheduler()
 

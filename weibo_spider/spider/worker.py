@@ -76,22 +76,33 @@ class SpiderWorker(object):
     async def handle_exclusive(self, channel, body, envelope, properties):
         body = json.loads(body.decode('utf-8'))
         if body['type'] == 'bind_account':
-            await self.channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
             await self.bind_account(account=body['account'], cookies=body['cookies'])
+            await channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
 
     async def handle_task(self, channel, body, envelope, properties):
+        self.logger.info(body)
         body = json.loads(body.decode('utf-8'))
         self.logger.info('Got a task of type {0}'.format(body['type']))
         if body['type'] == 'update_word_follow':
             self.logger.info('Got a update_word_follow task!')
-            await self.update_word_follow(body['keyword'], body['newest_ts'])
+            result = await self.update_word_follow(body['keyword'], body['newest_ts'])
+            await self.channel.basic_publish(
+                payload=json.dumps(result),
+                exchange_name='amq.direct',
+                routing_key='worker_report',
+                properties={
+                    'correlation_id': properties.correlation_id
+                },
+            )
             await channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
 
     async def update_word_follow(self, keyword, newest_ts):
+        """更新至指定时间, 返回新微博数量和他们的mid."""
         it = self.spider.fetch_search_iter(keyword=keyword)
         min_ts = int((time.time() + 3600) * 1000)
         max_ts = 0
         num_new = 0
+        mids = []
         self.logger.info('start __update loop.')
         for weibos, page, _ in it:
             self.logger.info('__update page {0}.'.format(page))
@@ -99,6 +110,7 @@ class SpiderWorker(object):
                 if weibo.timestamp >= newest_ts:  # New
                     print(weibo.pretty())
                     num_new += 1
+                    mids.append(weibo.mid)
                 max_ts = max(max_ts, weibo.timestamp)
                 min_ts = min(min_ts, weibo.timestamp)
             self.logger.info("min_ts={min_ts}, max_ts={max_ts}, newest_ts={newest_ts}.".format(
@@ -110,7 +122,11 @@ class SpiderWorker(object):
             # if page % 10 == 0:
             #     time.sleep(10)
         print('got {0} new.'.format(num_new))
-        return num_new
+        return {
+            'num_new': num_new,
+            'mids': mids,
+            'max_ts': max_ts,
+        }
 
     async def save_weibo_data(self, weibos):
         playload = json.dumps(weibos, cls=JsonSerializableEncoder)

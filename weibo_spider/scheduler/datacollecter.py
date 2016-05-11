@@ -40,7 +40,7 @@ class DataCollecter(object):
         def convert_generator():
             for weibo_dict in weibos:
                 weibo = TweetP.from_json_dict(weibo_dict)
-                print(weibo.pretty())
+                # print(weibo.pretty())
                 yield weibo
         self.logger.info("Got {0} weibo.".format(len(weibos)))
         self.save_weibo(convert_generator())
