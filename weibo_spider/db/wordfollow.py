@@ -42,5 +42,9 @@ class WordFollowDAO(Singleton):
             self.session.commit()
         return wordfollow
 
+    def all_iter(self):
+        for wordfollow in self.session.query(WordFollow):
+            yield wordfollow
+
     def commit(self):
         self.session.commit()

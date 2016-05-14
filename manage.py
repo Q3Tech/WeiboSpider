@@ -23,19 +23,32 @@ def get_praser():
     # db
     _db = subparsers.add_parser('db', help='Shell service')
     _db.add_argument('--create-table', help='create-table', nargs='*')
-    return parser
 
     # spider
     _spider = subparsers.add_parser('spider', help='Spider')
-    _spider.add_argument('--demon', help='run as demon', action='store_true')
+    _spider.add_argument('-d', '--demon', help='run as demon', action='store_true')
 
+    # scheduler
+    _scheduler = subparsers.add_parser('scheduler', help='Scheduler')
+    _scheduler.add_argument('-d', '--demon', help='run as demon', action='store_true')
+
+    return parser
+
+
+def config_logger(name, level):
+    logger = logging.getLogger(name)
+    hdr = logging.StreamHandler()
+    formatter = logging.Formatter('[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
+    hdr.setFormatter(formatter)
+    logger.addHandler(hdr)
+    logger.setLevel(level)
 
 def main():
     parser = get_praser()
     args = parser.parse_args()
     if args.subcommand == 'shell':
         logging.basicConfig(stream=sys.stdout, level=logging.INFO,
-                            format='[%(asctime)s %(levelname)s] %(message)s')
+                            format='[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
         import IPython
         IPython.embed()
     elif args.subcommand == 'login':
@@ -54,7 +67,24 @@ def main():
             db_engine.create_db()
 
     elif args.subcommand == 'spider':
-        pass
+        if args.demon:
+            from spider.worker import SpiderWorker
+            logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
+                                format='[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
+            SpiderWorker()
+    elif args.subcommand == 'scheduler':
+        if args.demon:
+            from scheduler.scheduler import Scheduler
+            from scheduler.datacollecter import DataCollecter
+            config_logger('WordFollower', logging.DEBUG)
+            config_logger('Scheduler', logging.DEBUG)
+            config_logger('DataCollecter', logging.INFO)
+            pid = os.fork()
+            if pid == 0:
+                DataCollecter()
+                pass
+            else:
+                Scheduler()
 
 if __name__ == '__main__':
     main()

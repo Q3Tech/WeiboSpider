@@ -3,5 +3,5 @@
 from .spider import get_random_spider
 from .parser import Parser
 from .tweetp import TweetP
-from .wordfollower import WordFollower
+from .spider import Spider
 from .captcha import CaptchaDecoderFactory

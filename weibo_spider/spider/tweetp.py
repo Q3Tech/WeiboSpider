@@ -6,9 +6,18 @@
 import datetime
 import time
 
+from core import JsonSerializable
 
-class TweetP(object):
+
+class TweetP(JsonSerializable):
     """parsed Tweet."""
+
+    _keys = (
+        'fetch_timestamp', 'uid', 'mid', 'nickname', 'pageurl',
+        'pageurl', 'raw_html', 'timestamp', 'timestamp', 'device',
+        'location', 'text', 'share', 'comment', 'like', 'isforward',
+        'forward_tweet',
+        )
 
     def __init__(self, fetch_time=None):
         """构造函数."""
@@ -43,7 +52,9 @@ class TweetP(object):
                 assert(isinstance(v, bool))
                 self.__setattr__(k, v)
             elif k == 'forward_tweet':
-                assert(isinstance(v, TweetP))
+                assert(isinstance(v, TweetP) or isinstance(v, dict))
+                if isinstance(v, dict):
+                    v = TweetP.from_json_dict(v)
                 self.forward_tweet = v
                 self.isforward = True
             else:
@@ -66,3 +77,16 @@ class TweetP(object):
         r += '{share} share | {comment} comment | {like} like'.format(
             share=self.share, comment=self.comment, like=self.like)
         return r
+
+    def to_json_dict(self):
+        json_dict = {}
+        for key in self._keys:
+            json_dict[key] = self.__getattribute__(key)
+        return json_dict
+
+    @classmethod
+    def from_json_dict(cls, value):
+        assert(isinstance(value, dict))
+        weibo = TweetP()
+        weibo.update(**value)
+        return weibo
