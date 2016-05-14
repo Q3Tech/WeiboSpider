@@ -32,6 +32,9 @@ def get_praser():
     _scheduler = subparsers.add_parser('scheduler', help='Scheduler')
     _scheduler.add_argument('-d', '--demon', help='run as demon', action='store_true')
 
+    # datacollecter
+    _datacollecter = subparsers.add_parser('datacollecter', help='DataCollecter')
+    _datacollecter.add_argument('-d', '--demon', help='run as demon', action='store_true')
     return parser
 
 
@@ -42,6 +45,7 @@ def config_logger(name, level):
     hdr.setFormatter(formatter)
     logger.addHandler(hdr)
     logger.setLevel(level)
+
 
 def main():
     parser = get_praser()
@@ -69,8 +73,8 @@ def main():
     elif args.subcommand == 'spider':
         if args.demon:
             from spider.worker import SpiderWorker
-            logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
-                                format='[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
+            config_logger('SpiderWorker', logging.DEBUG)
+            config_logger('Spider', logging.DEBUG)
             SpiderWorker()
     elif args.subcommand == 'scheduler':
         if args.demon:
@@ -79,12 +83,19 @@ def main():
             config_logger('WordFollower', logging.DEBUG)
             config_logger('Scheduler', logging.DEBUG)
             config_logger('DataCollecter', logging.INFO)
-            pid = os.fork()
-            if pid == 0:
-                DataCollecter()
-                pass
-            else:
-                Scheduler()
+            Scheduler()
+            # pid = os.fork()
+            # if pid == 0:
+            #     DataCollecter()
+            #     pass
+            # else:
+            #     Scheduler()
+    elif args.subcommand == 'datacollecter':
+        if args.demon:
+            from scheduler.datacollecter import DataCollecter
+            config_logger('DataCollecter', logging.INFO)
+            DataCollecter()
+
 
 if __name__ == '__main__':
     main()

@@ -39,7 +39,7 @@ class Tweet(Base):
     text = Column(TEXT)
     timestamp = Column(BIGINT)
     device = Column(String(50))
-    location = Column(String(50))
+    location = Column(String(100))
     share = Column(Integer)
     comment = Column(Integer)
     like = Column(Integer)

@@ -3,6 +3,9 @@
 
 """Weibo."""
 from sqlalchemy import Column, Integer, String, BIGINT
+from sqlalchemy import UniqueConstraint
+from sqlalchemy.orm import load_only
+
 
 from .db_engine import Base
 from .db_engine import DBEngine
@@ -20,6 +23,15 @@ class WordFollow(Base):
     id = Column(Integer, primary_key=True)
     word = Column(String(50), unique=True)
     newest_timestamp = Column(BIGINT)
+
+
+class WordFollowTweet(Base):
+    __tablename__ = 'wordfollowtweet'
+    id = Column(Integer, primary_key=True)
+    word_id = Column(Integer)
+    mid = Column(String(12))
+
+    __table_args__ = (UniqueConstraint('word_id', 'mid', name='wordfollow_tweet'),)
 
 
 class WordFollowDAO(Singleton):
@@ -41,6 +53,21 @@ class WordFollowDAO(Singleton):
             self.session.add(wordfollow)
             self.session.commit()
         return wordfollow
+
+    def add_wordfollow_mids(self, word, mids):
+        word_id = self.session.query(WordFollow).filter(
+            WordFollow.word == word).one_or_none()
+        if not word_id:
+            return
+        word_id = word_id.id
+        exists_mid_query = self.session.query(WordFollowTweet).filter(
+            WordFollowTweet.mid.in_(mids)).options(load_only("mid"))
+        exists_mids = [x.mid for x in exists_mid_query]
+        mids = set(mids) - set(exists_mids)
+        data = []
+        for mid in mids:
+            data.append(dict(word_id=word_id, mid=mid))
+        self.session.bulk_insert_mappings(WordFollowTweet, data)
 
     def all_iter(self):
         for wordfollow in self.session.query(WordFollow):

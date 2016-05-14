@@ -31,12 +31,10 @@ class WordFollowHandler(tornado.web.RequestHandler):
         action = self.get_argument('action')
         if action == 'active':
             word = self.get_argument('word')
-            if word in scheduler.word_follower:
-                await scheduler.word_follower[word].start()
+            await scheduler.active_word_follow(word)
         elif action == 'deactive':
             word = self.get_argument('word')
-            if word in scheduler.word_follower:
-                await scheduler.word_follower[word].stop()
+            await scheduler.deactive_word_follow(word)
 
 
 def install_web_api(_scheduler):

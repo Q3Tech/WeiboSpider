@@ -19,11 +19,6 @@ class SpiderWorker(object):
     def __init__(self):
         # logger
         self.logger = logging.getLogger('SpiderWorker')
-        hdr = logging.StreamHandler()
-        formatter = logging.Formatter('[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
-        hdr.setFormatter(formatter)
-        self.logger.addHandler(hdr)
-        self.logger.setLevel(logging.INFO)
 
         self.logger.info('SpiderWorker initializing.')
         self.id = str(uuid.uuid4())

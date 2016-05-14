@@ -28,16 +28,13 @@ class Scheduler(object):
 
     def __init__(self):
         self.logger = logging.getLogger('Scheduler')
-        hdr = logging.StreamHandler()
-        formatter = logging.Formatter('[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
-        hdr.setFormatter(formatter)
-        self.logger.addHandler(hdr)
-        self.logger.setLevel(logging.INFO)
+        
         self.logger.info('Scheduler initializing.')
         self.workers = {}  # SpiderWorker
         self.accounts = {}   # 有效账户
         self.account_avail_set = set()
         self.account_dao = AccountDAO()
+        self.wordfollow_dao = WordFollowDAO()
         self.worker_rpc_futures = {}
         self.word_follower = {}
 
@@ -81,6 +78,19 @@ class Scheduler(object):
             self.logger.debug('initializing wordfollower {0}'.format(word))
             if word not in self.word_follower:
                 self.word_follower[word] = WordFollower(word=word, scheduler=self)
+
+    async def active_word_follow(self, word):
+        if word not in self.word_follower:
+            self.create_word_follow(word)
+        await self.word_follower[word].start()
+
+    async def deactive_word_follow(self, word):
+        if word in self.word_follower:
+            self.word_follower[word].stop()
+
+    def create_word_follow(self, word):
+        self.wordfollow_dao.get_or_create(word=word)
+        self.word_follower[word] = WordFollower(word=word, scheduler=self)
 
     async def handle_heartbeat(self, channel, body, envelope, properties):
         body = json.loads(body.decode('utf-8'))

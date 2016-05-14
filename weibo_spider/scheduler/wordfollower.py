@@ -23,10 +23,14 @@ class WordFollower(object):
         self.scheduler = scheduler
 
     async def start(self):
+        if self.running:
+            return
         self.running = True
         self.worker = ensure_future(self.follow_worker())
 
     async def stop(self):
+        if not self.running:
+            return
         if self.worker:
             self.worker.cancel()
         self.running = False
@@ -50,6 +54,7 @@ class WordFollower(object):
             self.logger.info(result)
         body = json.loads(result['body'].decode('utf-8'))
         self.wordfollow.newest_timestamp = max(self.wordfollow.newest_timestamp, body['max_ts'])
+        self.wordfollow_dao.add_wordfollow_mids(self.word, body['mids'])
         self.wordfollow_dao.commit()
         return body['num_new']
 
@@ -58,8 +63,9 @@ class WordFollower(object):
         while self.running:
             self.logger.info('Try to update wordfollow {0}.'.format(word))
             num_new = await self.__update()
+            self.logger.info('{0} Update complete.'.format(word))
             fetch_interval = self.fetch_interval
-            if num_new > 30:
+            if num_new >= 20:
                 fetch_interval *= 0.618
             elif num_new < 10:
                 fetch_interval *= 1.618
