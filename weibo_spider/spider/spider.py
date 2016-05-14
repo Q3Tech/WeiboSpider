@@ -35,11 +35,6 @@ class Spider(object):
         tweet_dao: TweetDAO
         """
         self.logger = logging.getLogger('Spider')
-        hdr = logging.StreamHandler()
-        formatter = logging.Formatter('[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
-        hdr.setFormatter(formatter)
-        self.logger.addHandler(hdr)
-        self.logger.setLevel(logging.INFO)
 
         assert isinstance(account, Account)
         if rawdata_dao:

@@ -20,3 +20,16 @@ RAW_DATA_STORGE = {
 SAMPLES_DIR = os.path.join(BASE_DIR, 'samples')
 
 VERIFY_BOT_URL = ''
+
+RUOKUAI_SETTINGS = {
+    'username': '',
+    'password': '',
+    'softid': 58327,
+    'softkey': 'f583dc7728fd4e589e1a2c66f7450a88',
+}
+
+RABBITMQ_SETTINGS = {
+    'host': '127.0.0.1',
+    'virtualhost': 'weibo_spider'
+}
+SCHEDULER_API_PORT = 8091
