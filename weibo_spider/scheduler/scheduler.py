@@ -112,6 +112,7 @@ class Scheduler(object):
     async def handle_report(self, channel, body, envelope, properties):
         if properties.correlation_id:
             correlation_id = properties.correlation_id
+            self.logger.debug('Got RPC reply, correlation_id: {0}'.format(correlation_id))
             if correlation_id in self.worker_rpc_futures:
                 self.worker_rpc_futures[correlation_id].set_result({
                     'channel': channel,
@@ -179,7 +180,7 @@ class Scheduler(object):
         assert(isinstance(properties, dict) and 'correlation_id' not in properties)
         correlation_id = str(uuid.uuid4())
         properties['correlation_id'] = correlation_id
-        self.logger.debug('Sending RPC.')
+        self.logger.debug('Sending RPC. correlation_id: {0}'.format(correlation_id))
         await self.channel.basic_publish(
             payload=payload,
             exchange_name='amq.direct',
@@ -188,12 +189,15 @@ class Scheduler(object):
         )
         self.worker_rpc_futures[correlation_id] = asyncio.Future()
         try:
-            with asyncio.timeout(timeout):
-                result = await self.worker_rpc_futures[correlation_id]
+            result = await asyncio.wait_for(self.worker_rpc_futures[correlation_id], timeout)
+            self.logger.debug('RPC {0} reply received.'.format(correlation_id))
         except asyncio.TimeoutError:
+            self.logger.warn('RPC {0} timeout after {1} seconds.'.format(correlation_id, timeout))
             result = None
             self.worker_rpc_futures[correlation_id].cancel()
+        except Exception:
+            raise
         finally:
+            self.logger.debug('RPC {0} future destroyed.'.format(correlation_id))
             self.worker_rpc_futures.pop(correlation_id)
-
         return result
