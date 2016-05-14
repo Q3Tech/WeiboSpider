@@ -116,7 +116,7 @@ class SpiderWorker(object):
                 break
             # if page % 10 == 0:
             #     time.sleep(10)
-        print('got {0} new.'.format(num_new))
+        self.logger.info('{0} got {1} new.'.format(keyword, num_new))
         return {
             'num_new': num_new,
             'mids': mids,
