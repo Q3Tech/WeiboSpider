@@ -28,7 +28,7 @@ class Scheduler(object):
 
     def __init__(self):
         self.logger = logging.getLogger('Scheduler')
-        
+
         self.logger.info('Scheduler initializing.')
         self.workers = {}  # SpiderWorker
         self.accounts = {}   # 有效账户
@@ -86,7 +86,7 @@ class Scheduler(object):
 
     async def deactive_word_follow(self, word):
         if word in self.word_follower:
-            self.word_follower[word].stop()
+            await self.word_follower[word].stop()
 
     def create_word_follow(self, word):
         self.wordfollow_dao.get_or_create(word=word)
