@@ -1,0 +1,171 @@
+<html>
+  <head>
+    <title>热点跟踪</title>
+    <style>
+      * {
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box
+      }
+      .clearfix {
+        overflow:hidden;
+        _zoom:1;
+      }
+      [v-cloak] {
+          display: none;
+      }
+      li {
+        list-style-type: none;
+      }
+      /* weibo */
+      .weibo {
+        font-size: 14px;
+        font-family: Arial, 'Microsoft YaHei';
+        max-width: 500px;
+        margin-bottom: 10px;
+      }
+      .weibo:not(.is-forward){
+          padding: 5px 5px;
+          box-shadow: 0 0 2px rgba(0,0,0,0.2);
+          border-radius: 2px;
+      }
+      .weibo.is-forward {
+        font-size: 12px;
+        padding-left: 15px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+        margin-left: -5px;
+        margin-right: -5px;
+        background-color: #F2F2F5;
+        margin-bottom: 0;
+      }
+      .weibo p {
+        margin-top: 0;
+        margin-bottom: 5px;
+      }
+      .weibo a {
+        color: #333;
+        text-decoration: none;
+      }
+      .weibo a:hover {
+        color: #337ab7;
+      }
+      .weibo:not(.is-forward) .weibo-handle {
+        margin: 0 -5px 0 -5px;
+      }
+      .weibo .weibo-handle ul{
+        margin: 0;
+        padding: 0;
+        width: 100%;
+      }
+      .weibo.is-forward .weibo-handle ul{
+        padding-left: 50%;
+      }
+      .weibo .weibo-handle li{
+        width: 33%;
+        display: list-item;
+        float: left;
+        /*border-left: #d9d9d9 1px solid;*/
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="wordfollow_control" v-cloak>
+        <table>
+          <thead>
+            <th>KeyWord</th>
+            <th>Status</th>
+            <th>newest</th>
+            <th>interval</th>
+          </thead>
+          <tbody>
+            <tr v-for="wf in wordfollowers">
+              <td>{{ wf.word }}</td>
+              <td>{{ wf.running }}</td>
+              <td>{{ wf.newest_timestamp }}</td>
+              <td>{{ wf.interval }}</td>
+            </tr>
+          </tbody>
+        </table>
+    </div>
+    <div id="tweets" v-cloak>
+      <weibo v-for="tweet in tweets" v-bind:tweetp="tweet" v-bind:is_forward="false"></weibo>
+    </div>
+    <script type="text/x-template" id="weibo_template">
+      <div class="weibo" v-bind:class="{ 'is-forward': is_forward }">
+        <b><a href="http://weibo.com/u/{{ tweet.uid }}">{{ tweet.nickname }}</a></b>
+        <p>
+          <a href="http://weibo.com/{{ tweet.uid}}/{{ tweet.mid }}">{{ tweet.time }}</a>
+          <small v-if="tweet.device"> By {{ tweet.device }}</small>
+          <small v-if="tweet.location"> @ {{ tweet.location }}</small>
+          </p>
+        <p>{{ tweet.text }}</p>
+        <weibo v-if="tweet.forward_tweet" v-bind:tweetp="tweet.forward_tweet" v-bind:is_forward="true"></weibo>
+        <div class="weibo-handle">
+          <ul class="clearfix">
+            <li>转发 {{ tweet.share }}</li>
+            <li>评论 {{ tweet.comment }}</li>
+            <li>赞 {{ tweet.like }}</li>
+          </ul>
+        </div>
+      </div>
+    </script>
+    <script src="/static/js/vue.js"></script>
+    <script src="/static/js/vue-router.js"></script>
+    <script src="/static/js/jquery-2.2.3.min.js"></script>
+    <script>
+(function(){
+  var vm = new Vue({
+    el: "#wordfollow_control",
+    data: {
+      'wordfollowers': []
+    }
+  });
+  $.getJSON('/api/wordfollow/', function(data){
+    for(var i = 0; i < data.length; i++){
+      data[i].newest_timestamp = new Date(data[i].newest_timestamp);
+    }
+    vm.$set('wordfollowers', data);
+  });
+})();
+    </script>
+    <script>
+(function(){
+  Vue.component('weibo', {
+    template: '#weibo_template',
+    props: ['tweetp', 'is_forward'],
+    computed: {
+      tweet: function() {
+        var tp = this.tweetp;
+        var time = new Date(tp.timestamp);
+        var time_text = time.getFullYear() + '-' + time.getMonth() + '-' + time.getDate();
+        time_text += ' ' + time.getHours() + ':' + time.getMinutes() + ':' + time.getSeconds();
+        return {
+          'uid': tp.uid,
+          'mid': tp.mid,
+          'nickname': tp.nickname,
+          'text': tp.text,
+          'time': time_text,
+          'device': tp.device,
+          'share': tp.share,
+          'comment': tp.comment,
+          'like': tp.like,
+          'forward_tweet': tp.forward_tweet
+        }
+      }
+    }
+  });
+  var vm = new Vue({
+    el: "#tweets",
+    data: {
+      'tweets': []
+    }
+  });
+  $.getJSON('/api/wordupdate/?word=江苏%20高考', function(data){
+    vm.$set('tweets', data);
+  });
+})();
+    </script>
+  </body>
+</html>
