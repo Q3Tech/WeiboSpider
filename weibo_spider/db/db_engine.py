@@ -21,7 +21,7 @@ class DBEngine(Singleton):
         self.connect_string = 'mysql+pymysql://{user}:{password}@{host}/{database}?charset=utf8mb4'.format(
             **settings.MYSQL_SETTINGS)
         print(self.connect_string)
-        __engine = create_engine(self.connect_string, echo=False)
+        __engine = create_engine(self.connect_string, echo=False, isolation_level="READ COMMITTED")
         self.engine = __engine.connect()
         Session = sessionmaker(bind=self.engine)
         self.session = Session()

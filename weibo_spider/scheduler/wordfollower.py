@@ -6,6 +6,7 @@ import json
 from asyncio import ensure_future
 
 from db.wordfollow import WordFollowDAO
+from db.wordfollow import WordFollowTweetDAO
 
 
 class WordFollower(object):
@@ -15,6 +16,7 @@ class WordFollower(object):
         self.logger = logging.getLogger('WordFollower')
         self.word = word
         self.wordfollow_dao = WordFollowDAO()
+        self.wordfollowtweet_dao = WordFollowTweetDAO()
         self.wordfollow = self.wordfollow_dao.get_or_create(word=word)
         self.running = False
         self.fetch_interval = 30
@@ -54,8 +56,9 @@ class WordFollower(object):
             self.logger.info(result)
         body = json.loads(result['body'].decode('utf-8'))
         self.wordfollow.newest_timestamp = max(self.wordfollow.newest_timestamp, body['max_ts'])
-        self.wordfollow_dao.add_wordfollow_mids(self.word, body['mids'])
         self.wordfollow_dao.commit()
+        self.wordfollowtweet_dao.add_wordfollow_mids(self.word, body['mids'])
+        self.wordfollowtweet_dao.commit()
         return body['num_new']
 
     async def follow_worker(self):

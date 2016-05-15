@@ -2,6 +2,7 @@
 import aioamqp
 import settings
 import asyncio
+import logging
 
 connection = None
 protocol = None
@@ -36,7 +37,7 @@ async def disconnected(exception):
     global __aioamqp_heartbeat_patch_timer
     connection = None
     protocol = None
-    __aioamqp_heartbeat_patch_timer.set_result(None)
+    __aioamqp_heartbeat_patch_timer.cancel()
     __aioamqp_heartbeat_patch_timer = None
     print(exception)
     raise exception
@@ -44,7 +45,7 @@ async def disconnected(exception):
 async def __aioamqp_heartbeat_patch():
     global protocol
     while True:
-        print('try to send heartbeat.')
+        logging.warn('try to send heartbeat.')
         await protocol.heartbeat()
         await asyncio.sleep(protocol.server_heartbeat)
 

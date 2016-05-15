@@ -7,6 +7,7 @@ import os
 import settings
 
 from .api_bridge import WordFollowerHandler
+from .weibo import WordUpdateHandler
 
 __static_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 __template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'template')
@@ -25,6 +26,7 @@ def get_app():
         }),
         (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": __static_path}),
         (r"/api/wordfollow/", WordFollowerHandler),
+        (r"/api/wordupdate/", WordUpdateHandler),
 
 
     ])
