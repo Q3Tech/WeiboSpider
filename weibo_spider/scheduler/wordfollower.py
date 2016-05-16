@@ -68,7 +68,7 @@ class WordFollower(object):
             num_new = await self.__update()
             self.logger.info('{0} Update complete.'.format(word))
             fetch_interval = self.fetch_interval
-            if num_new >= 20:
+            if num_new >= 19:
                 fetch_interval *= 0.618
             elif num_new < 10:
                 fetch_interval *= 1.618
