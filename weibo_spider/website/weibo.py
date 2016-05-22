@@ -15,7 +15,6 @@ class WordUpdateHandler(tornado.web.RequestHandler):
         tweet_dao = TweetDAO()
         word = self.get_query_argument('word')
         mids = wordfollowtweet_dao.get_word_latest_mids(word)
-        print(mids)
         tweets = tweet_dao.get_tweetp_from_mids(mids=mids)
         self.set_header('Content-Type', 'application/javascript')
         self.write(json.dumps(tweets, cls=JsonSerializableEncoder))

@@ -94,7 +94,6 @@ class WordFollowTweetDAO(Singleton):
         mids_query = self.session.query(WordFollowTweet).filter(
             WordFollowTweet.word_id == word_id).order_by(desc(WordFollowTweet.id)).limit(num)
         for mid in mids_query:
-            print(mid.id)
             mids.append(mid.mid)
         return mids
 

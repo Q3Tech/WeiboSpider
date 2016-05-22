@@ -7,6 +7,9 @@
         -moz-box-sizing: border-box;
         box-sizing: border-box
       }
+      div {
+        font-family: Arial, 'Microsoft YaHei';
+      }
       .clearfix {
         overflow:hidden;
         _zoom:1;
@@ -28,6 +31,7 @@
           padding: 5px 5px;
           box-shadow: 0 0 2px rgba(0,0,0,0.2);
           border-radius: 2px;
+          background: #FFF;
       }
       .weibo.is-forward {
         font-size: 12px;
@@ -72,6 +76,21 @@
       .weibo-follow {
         float: left;
         padding: 5px 5px;
+        margin: 5px 5px;
+        box-shadow: 0 0 2px rgba(0,0,0,0.2);
+        background-color: rgb(180, 218, 240);
+        border-radius: 2px;
+      }
+      .weibo-follow .weibo-follow-header {
+        margin-top: -5px;
+        margin-left: -5px;
+        margin-right: -5px;
+        margin-bottom: 10px;
+        padding: 5px;
+        background-color: rgb(147, 197, 226);
+        border-radius: 2px;
+
+
       }
     </style>
   </head>
@@ -103,7 +122,7 @@
     </script>
     <script type="text/x-template" id="weibo_follow_temmplate">
       <div class='weibo-follow'>
-        <div>{{ keyWord }}</div>
+        <div class="weibo-follow-header"><b>{{ keyWord }}</b></div>
         <div>
           <weibo v-for="tweet in tweets" v-bind:tweetp="tweet" v-bind:is_forward="false"></weibo>
         </div>
