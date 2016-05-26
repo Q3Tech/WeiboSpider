@@ -9,8 +9,9 @@ import settings
 from .api_bridge import WordFollowerHandler
 from .weibo import WordUpdateHandler
 
-__static_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
-__template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'template')
+__frontend_path = os.path.join(settings.BASE_DIR, 'frontend')
+__static_path = os.path.join(__frontend_path, 'static')
+__template_path = os.path.join(__frontend_path, 'template')
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -21,7 +22,7 @@ class MainHandler(tornado.web.RequestHandler):
 def get_app():
     application = tornado.web.Application([
         (r"/()", tornado.web.StaticFileHandler, {
-            "path": __template_path,
+            "path": __frontend_path,
             "default_filename": "index.html"
         }),
         (r"/static/(.*)", tornado.web.StaticFileHandler, {"path": __static_path}),
