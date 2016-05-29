@@ -10,8 +10,7 @@ from .api_bridge import WordFollowerHandler
 from .weibo import WordUpdateHandler
 
 __frontend_path = os.path.join(settings.BASE_DIR, 'frontend')
-__static_path = os.path.join(__frontend_path, 'static')
-__template_path = os.path.join(__frontend_path, 'template')
+__static_path = os.path.join(__frontend_path, 'bin', 'static')
 
 
 class MainHandler(tornado.web.RequestHandler):
