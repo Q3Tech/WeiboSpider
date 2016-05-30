@@ -25,6 +25,7 @@
         background-color: rgb(180, 218, 240);
         border-radius: 2px;
         height: 100%;
+        min-width: 505px;
     }
     .weibo-follow .scroll {
         overflow-x: hidden;
