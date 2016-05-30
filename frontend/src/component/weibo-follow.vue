@@ -1,24 +1,33 @@
 <template>
     <div class='weibo-follow'>
         <div class="weibo-follow-header"><b>{{ keyWord }}</b></div>
-        <div>
-            <weibo-tweet v-for="tweet in tweets" v-bind:tweetp="tweet" v-bind:is_forward="false"></weibo-tweet>
+        <div class="scroll">
+            <div>
+                <weibo-tweet v-for="tweet in tweets" v-bind:tweetp="tweet" v-bind:is_forward="false"></weibo-tweet>
+            </div>
         </div>
     </div>
 </template>
 <style>
     .weibo-follow {
-        float: left;
-        padding: 5px 5px;
+        white-space: initial;
+        display: inline-block;
+        padding-top: 5px;
         margin: 5px 5px;
         box-shadow: 0 0 2px rgba(0,0,0,0.2);
         background-color: rgb(180, 218, 240);
         border-radius: 2px;
+        height: 100%;
+    }
+    .weibo-follow .scroll {
+        overflow-x: hidden;
+        overflow-y: auto;
+        height:100%;
+        padding-left: 5px;
+        /*padding-right: 5px;*/
     }
     .weibo-follow .weibo-follow-header {
         margin-top: -5px;
-        margin-left: -5px;
-        margin-right: -5px;
         margin-bottom: 10px;
         padding: 5px;
         background-color: rgb(147, 197, 226);
