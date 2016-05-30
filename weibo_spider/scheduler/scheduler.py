@@ -3,7 +3,6 @@
 import asyncio
 import logging
 import json
-import consul.aio
 import time
 import random
 import uuid
@@ -46,7 +45,6 @@ class Scheduler(object):
         loop.run_forever()
 
     async def init(self):
-        self.consul = consul.aio.Consul()
         self.channel = await get_channel()
 
         self.load_accounts()
@@ -69,7 +67,6 @@ class Scheduler(object):
             }
             if account.is_login:
                 self.account_avail_set.add(account.email)
-        # await self.consul.kv.put('')
 
     def load_word_follow(self):
         wordfollow_dao = WordFollowDAO()

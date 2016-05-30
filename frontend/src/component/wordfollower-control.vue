@@ -10,7 +10,7 @@
             <tbody>
             <tr v-for="wf in wordfollowers">
                 <td>{{ wf.word }}</td>
-                <td>{{ wf.running }}</td>
+                <td><button class="btn" v-bind:class="{'btn-danger': wf.running, 'btn-success': !wf.running }" v-on:click="switch_running(wf)">{{ wf.running?"停止":"跟踪" }}</button> </td>
                 <td>{{ wf.time_text }}</td>
                 <td>{{ wf.interval }}</td>
             </tr>
@@ -41,21 +41,33 @@
                         word: t.word,
                         running: t.running,
                         time_text: dateFormat(new Date(t.newest_timestamp),"yyyy-mm-dd hh:MM:ss"),
-                        interval: t.interval
+                        interval: t.interval,
+                        origin: t
                     });
                 }
                 return wordfollowers;
             }
         },
         methods: {
-          load: function(callback) {
-              var self = this;
-              console.log("hehe");
-              $.getJSON('/api/wordfollow/' , function(data){
-                  self.wordfollowers_raw=data;
-                  callback();
-              });
-          }
+            load: function(callback) {
+                var self = this;
+                console.log("hehe");
+                $.getJSON('/api/wordfollow/' , function(data){
+                    self.wordfollowers_raw=data;
+                    if (callback)
+                        callback();
+                });
+            },
+            switch_running: function(wordfollower) {
+                var action = wordfollower.running ? 'deactive': 'active'
+                var $this = this;
+                $.post('/api/wordfollow/', {
+                    'action': action,
+                    'word': wordfollower.word
+                }, function () {
+                    $this.load();
+                });
+            }
         },
         route: {
             activate: function (transition) {
