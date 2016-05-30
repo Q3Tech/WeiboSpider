@@ -12,9 +12,12 @@
         height: 100%;
         overflow-x: auto;
         overflow-y: hidden;
+        padding-top: 5px;
+        padding-bottom: 3px;
     }
     .follw-container-body .body-scroll {
         white-space: nowrap;
+        height: 100%;
     }
 </style>
 <script>
