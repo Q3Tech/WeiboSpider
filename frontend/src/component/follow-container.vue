@@ -24,12 +24,22 @@
     import WeiboFollow from './weibo-follow.vue'
     export default{
         data(){
-            return{
-                keywords: ['江苏 高考', '南京']
+            return {
+                keywords: ['江苏 高考']
             }
         },
-        components:{
-            'weibo-follow':WeiboFollow
+        components: {
+            'weibo-follow': WeiboFollow
+        },
+        events: {
+            'container-add-keyword': function (keyword) {
+                if (this.keywords.indexOf(keyword) == -1) {
+                    this.keywords.push(keyword);
+                }
+            },
+            'container-remove-keyword': function (keyword) {
+                    this.keywords.$remove(keyword);
+            },
         }
     }
 </script>

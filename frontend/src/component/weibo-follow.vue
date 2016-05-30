@@ -1,6 +1,9 @@
 <template>
     <div class='weibo-follow'>
-        <div class="weibo-follow-header"><b>{{ keyWord }}</b></div>
+        <div class="weibo-follow-header">
+            <b>{{ keyWord }}</b>
+            <button type="button" class="close" v-on:click="close">×</button>
+        </div>
         <div style="height: 100%;">
             <div class="scroll">
                 <div>
@@ -62,6 +65,11 @@
         },
         components:{
             'weibo-tweet': WeiboTweet,
+        },
+        methods: {
+            close:function () {
+                this.$dispatch('container-remove-keyword', this.keyWord);
+            }
         }
     }
 </script>

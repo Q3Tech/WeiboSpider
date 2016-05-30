@@ -7,8 +7,7 @@ import Vue from 'vue'
 import Router from 'vue-router'
 import App from './component/App.vue'
 import WordFollowControl from './component/wordfollower-control.vue'
-import FollowContainer from './component/follow-container.vue'
-
+import FollowContainer from './component/follow-container.vue' 
 Vue.use(Router)
 var router = new Router()
 router.map({

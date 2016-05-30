@@ -18,6 +18,9 @@ module.exports = {
             loader: 'babel',
             // make sure to exclude 3rd party code in node_modules
             exclude: /node_modules/
+        }, {
+            test: require.resolve('jquery'),
+            loader: 'expose?jQuery'
         }
         ]
     },
