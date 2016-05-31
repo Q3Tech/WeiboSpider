@@ -37,6 +37,7 @@
     }
 </style>
 <script>
+    var $ = require("jquery")
     export default{
         data(){
             return {
@@ -46,6 +47,10 @@
         methods: {
             addKeyword: function(){
                 this.$broadcast('container-add-keyword', this.inputKeyword);
+                $.post('/api/wordfollow/', {
+                    'action': 'active',
+                    'word': this.inputKeyword
+                });
             }
         }
     }
