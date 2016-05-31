@@ -8,9 +8,13 @@ config.devServer = {
         '/api/*': {
             target: 'http://localhost:8038',
             secure: false,
-            rewrite: function(req) {
+            rewrite: function (req) {
                 // req.url = req.url.replace(/^\/api/, '');
             }
+        },
+        '/ws/*': {
+            target: 'ws://localhost:8038',
+            ws: true
         }
     }
 }

@@ -71,6 +71,16 @@
             close:function () {
                 this.$dispatch('container-remove-keyword', this.keyWord);
             }
+        },
+        events:{
+            'wordfollow-update': function (word, tweets) {
+                if (word != this.keyWord){
+                    return
+                }
+                for(var i = tweets.length; i >= 0; i--){
+                    this.tweets.unshift(tweets[i]);
+                }
+            }
         }
     }
 </script>

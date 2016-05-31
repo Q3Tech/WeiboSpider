@@ -31,6 +31,8 @@ async def declare_queues(channel):
     await channel.queue_bind(
         queue_name='worker_task', exchange_name='amq.direct', routing_key='worker_task')
 
+    # Exchange for wordfollow update
+    await channel.exchange_declare(exchange_name='wordfollow_update', type_name='fanout')
 
 async def disconnected(exception):
     global connection, protocol

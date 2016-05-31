@@ -59,6 +59,15 @@ class WordFollower(object):
         self.wordfollow_dao.commit()
         self.wordfollowtweet_dao.add_wordfollow_mids(self.word, body['mids'])
         self.wordfollowtweet_dao.commit()
+        # 发布至 Exchange wordfollow_update, 动态展示
+        await self.scheduler.channel.basic_publish(
+            payload=json.dumps({
+                'word': self.word,
+                'mids': body['mids']
+            }),
+            exchange_name='wordfollow_update',
+            routing_key='',
+        )
         return body['num_new']
 
     async def follow_worker(self):

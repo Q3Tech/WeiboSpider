@@ -102,6 +102,7 @@ def main():
     elif args.subcommand == 'web':
         if args.demon:
             from website import start_server
+            config_logger('WordFollowUpdateHandler', logging.DEBUG)
             start_server()
 
 
