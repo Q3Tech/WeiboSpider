@@ -57,13 +57,13 @@ class WordFollower(object):
         body = json.loads(result['body'].decode('utf-8'))
         self.wordfollow.newest_timestamp = max(self.wordfollow.newest_timestamp, body['max_ts'])
         self.wordfollow_dao.commit()
-        self.wordfollowtweet_dao.add_wordfollow_mids(self.word, body['mids'])
+        mids = self.wordfollowtweet_dao.add_wordfollow_mids(self.word, body['mids'])  # get diff mids
         self.wordfollowtweet_dao.commit()
         # 发布至 Exchange wordfollow_update, 动态展示
         await self.scheduler.channel.basic_publish(
             payload=json.dumps({
                 'word': self.word,
-                'mids': body['mids']
+                'mids': list(mids)
             }),
             exchange_name='wordfollow_update',
             routing_key='',

@@ -85,7 +85,7 @@ def main():
             from scheduler.scheduler import Scheduler
             from scheduler.datacollecter import DataCollecter
             config_logger('WordFollower', logging.DEBUG)
-            config_logger('Scheduler', logging.DEBUG)
+            config_logger('Scheduler', logging.INFO)
             config_logger('DataCollecter', logging.INFO)
             Scheduler()
             # pid = os.fork()

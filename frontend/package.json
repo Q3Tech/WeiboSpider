@@ -33,6 +33,7 @@
     "bootstrap3": "^3.3.5",
     "dateformat": "^1.0.12",
     "jquery": "^2.2.4",
-    "vue": "^1.0.24"
+    "vue": "^1.0.24",
+    "vue-animated-list": "^1.0.2"
   }
 }

@@ -7,7 +7,10 @@
         <div style="height: 100%;">
             <div class="scroll">
                 <div>
-                    <weibo-tweet v-for="tweet in tweets" v-bind:tweetp="tweet" v-bind:is_forward="false"></weibo-tweet>
+                    <div v-for="tweet in tweets" transition="weibo" track-by="mid">
+                        <weibo-tweet  v-bind:tweetp="tweet" v-bind:is_forward="false"  class="weibo"></weibo-tweet>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -77,7 +80,7 @@
                 if (word != this.keyWord){
                     return
                 }
-                for(var i = tweets.length; i >= 0; i--){
+                for(var i = tweets.length - 1; i >= 0; i--){
                     this.tweets.unshift(tweets[i]);
                 }
             }

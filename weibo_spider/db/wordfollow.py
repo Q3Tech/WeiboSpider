@@ -83,6 +83,7 @@ class WordFollowTweetDAO(Singleton):
         for mid in mids:
             data.append(dict(word_id=word_id, mid=mid))
         self.session.bulk_insert_mappings(WordFollowTweet, data)
+        return mids
 
     def get_word_latest_mids(self, word, num=50):
         word_id = self.session.query(WordFollow).filter(

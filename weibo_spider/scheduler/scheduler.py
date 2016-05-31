@@ -92,7 +92,7 @@ class Scheduler(object):
     async def handle_heartbeat(self, channel, body, envelope, properties):
         body = json.loads(body.decode('utf-8'))
         worker_id = body['id']
-        self.logger.info('Got heart beat from {0}.'.format(worker_id))
+        self.logger.debug('Got heart beat from {0}.'.format(worker_id))
         if worker_id not in self.workers:
             self.logger.info('New worker online! {0}'.format(worker_id))
             self.workers[worker_id] = {
@@ -149,7 +149,7 @@ class Scheduler(object):
 
     async def recycle(self):
         while True:
-            self.logger.info('Recycle')
+            self.logger.debug('Recycle')
             now = time.time()
             recycle_workers = [id for id in self.workers if now - self.workers[id]['last_alive'] > 60]
             for worker_id in recycle_workers:

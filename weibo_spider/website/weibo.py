@@ -72,6 +72,7 @@ class WordFollowUpdateHandler(tornado.websocket.WebSocketHandler):
         body = json.dumps({
                 'word': word,
                 'tweets': tweets,
+                'mids': list(mids)
             },
             cls=JsonSerializableEncoder
         )
