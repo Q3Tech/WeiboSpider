@@ -97,7 +97,7 @@
                     'mid': tp.mid,
                     'nickname': tp.nickname,
                     'text': tp.text,
-                    'time': dateFormat(new Date(tp.timestamp), "yyyy-mm-dd hh:MM:ss"),
+                    'time': dateFormat(new Date(tp.timestamp), "yyyy-mm-dd HH:MM:ss"),
                     'device': tp.device,
                     'share': tp.share,
                     'comment': tp.comment,

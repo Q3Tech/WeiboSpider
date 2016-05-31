@@ -40,7 +40,7 @@
                     wordfollowers.push({
                         word: t.word,
                         running: t.running,
-                        time_text: dateFormat(new Date(t.newest_timestamp),"yyyy-mm-dd hh:MM:ss"),
+                        time_text: dateFormat(new Date(t.newest_timestamp),"yyyy-mm-dd HH:MM:ss"),
                         interval: t.interval,
                         origin: t
                     });
