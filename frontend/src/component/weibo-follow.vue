@@ -17,6 +17,15 @@
     </div>
 </template>
 <style>
+    .weibo-transition {
+        transition: opacity .5s ease;
+    }
+    .weibo-move {
+        transition: transform 1.5s cubic-bezier(.55,0,.1,1);
+    }
+    .weibo-enter {
+        opacity: 0;
+    }
     .weibo-follow {
         position: relative;
         white-space: initial;
