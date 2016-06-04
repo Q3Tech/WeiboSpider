@@ -2,6 +2,7 @@
 import aioamqp
 import settings
 import asyncio
+import logging
 
 connection = None
 protocol = None
@@ -30,13 +31,15 @@ async def declare_queues(channel):
     await channel.queue_bind(
         queue_name='worker_task', exchange_name='amq.direct', routing_key='worker_task')
 
+    # Exchange for wordfollow update
+    await channel.exchange_declare(exchange_name='wordfollow_update', type_name='fanout')
 
 async def disconnected(exception):
     global connection, protocol
     global __aioamqp_heartbeat_patch_timer
     connection = None
     protocol = None
-    __aioamqp_heartbeat_patch_timer.set_result(None)
+    __aioamqp_heartbeat_patch_timer.cancel()
     __aioamqp_heartbeat_patch_timer = None
     print(exception)
     raise exception
@@ -44,7 +47,7 @@ async def disconnected(exception):
 async def __aioamqp_heartbeat_patch():
     global protocol
     while True:
-        print('try to send heartbeat.')
+        logging.warn('try to send heartbeat.')
         await protocol.heartbeat()
         await asyncio.sleep(protocol.server_heartbeat)
 

@@ -4,6 +4,7 @@
 """Weibo."""
 from sqlalchemy import Column, Integer, String, BIGINT
 from sqlalchemy import UniqueConstraint
+from sqlalchemy import desc
 from sqlalchemy.orm import load_only
 
 
@@ -54,6 +55,20 @@ class WordFollowDAO(Singleton):
             self.session.commit()
         return wordfollow
 
+    def all_iter(self):
+        for wordfollow in self.session.query(WordFollow):
+            yield wordfollow
+
+    def commit(self):
+        self.session.commit()
+
+
+class WordFollowTweetDAO(Singleton):
+
+    def __init__(self):
+        self.engine = DBEngine()
+        self.session = self.engine.session
+
     def add_wordfollow_mids(self, word, mids):
         word_id = self.session.query(WordFollow).filter(
             WordFollow.word == word).one_or_none()
@@ -68,10 +83,20 @@ class WordFollowDAO(Singleton):
         for mid in mids:
             data.append(dict(word_id=word_id, mid=mid))
         self.session.bulk_insert_mappings(WordFollowTweet, data)
+        return mids
 
-    def all_iter(self):
-        for wordfollow in self.session.query(WordFollow):
-            yield wordfollow
+    def get_word_latest_mids(self, word, num=50):
+        word_id = self.session.query(WordFollow).filter(
+            WordFollow.word == word).one_or_none()
+        if not word_id:
+            return []
+        word_id = word_id.id
+        mids = []
+        mids_query = self.session.query(WordFollowTweet).filter(
+            WordFollowTweet.word_id == word_id).order_by(desc(WordFollowTweet.id)).limit(num)
+        for mid in mids_query:
+            mids.append(mid.mid)
+        return mids
 
     def commit(self):
         self.session.commit()

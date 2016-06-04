@@ -4,7 +4,6 @@
 import logging
 import asyncio
 import time
-import consul.aio
 import uuid
 import json
 from core.mq_connection import get_channel
@@ -31,7 +30,6 @@ class SpiderWorker(object):
         loop.run_forever()
 
     async def init(self):
-        self.consul = consul.aio.Consul()
         self.channel = await get_channel()
 
         # exclusive
@@ -47,10 +45,6 @@ class SpiderWorker(object):
 
     async def update_alive(self):
         while True:
-            await self.consul.kv.put(
-                'WeiboSpider/SpiderWorker/{uuid}/last_alive'.format(uuid=self.id), str(time.time()))
-            await self.consul.kv.put(
-                'WeiboSpider/SpiderWorker/{uuid}/reply_to'.format(uuid=self.id), self.exclusive)
             playload = json.dumps({
                 'type': 'heartbeat',
                 'id': self.id,

@@ -6,6 +6,7 @@ import json
 from asyncio import ensure_future
 
 from db.wordfollow import WordFollowDAO
+from db.wordfollow import WordFollowTweetDAO
 
 
 class WordFollower(object):
@@ -15,6 +16,7 @@ class WordFollower(object):
         self.logger = logging.getLogger('WordFollower')
         self.word = word
         self.wordfollow_dao = WordFollowDAO()
+        self.wordfollowtweet_dao = WordFollowTweetDAO()
         self.wordfollow = self.wordfollow_dao.get_or_create(word=word)
         self.running = False
         self.fetch_interval = 30
@@ -54,8 +56,18 @@ class WordFollower(object):
             self.logger.info(result)
         body = json.loads(result['body'].decode('utf-8'))
         self.wordfollow.newest_timestamp = max(self.wordfollow.newest_timestamp, body['max_ts'])
-        self.wordfollow_dao.add_wordfollow_mids(self.word, body['mids'])
         self.wordfollow_dao.commit()
+        mids = self.wordfollowtweet_dao.add_wordfollow_mids(self.word, body['mids'])  # get diff mids
+        self.wordfollowtweet_dao.commit()
+        # 发布至 Exchange wordfollow_update, 动态展示
+        await self.scheduler.channel.basic_publish(
+            payload=json.dumps({
+                'word': self.word,
+                'mids': list(mids)
+            }),
+            exchange_name='wordfollow_update',
+            routing_key='',
+        )
         return body['num_new']
 
     async def follow_worker(self):
@@ -65,7 +77,7 @@ class WordFollower(object):
             num_new = await self.__update()
             self.logger.info('{0} Update complete.'.format(word))
             fetch_interval = self.fetch_interval
-            if num_new >= 20:
+            if num_new >= 19:
                 fetch_interval *= 0.618
             elif num_new < 10:
                 fetch_interval *= 1.618

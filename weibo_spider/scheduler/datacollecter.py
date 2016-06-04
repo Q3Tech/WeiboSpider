@@ -15,11 +15,6 @@ class DataCollecter(object):
     """收集由RabbitMQ回传的微博数据."""
     def __init__(self):
         self.logger = logging.getLogger('DataCollecter')
-        hdr = logging.StreamHandler()
-        formatter = logging.Formatter('[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
-        hdr.setFormatter(formatter)
-        self.logger.addHandler(hdr)
-        self.logger.setLevel(logging.INFO)
 
         self.rawdata_dao = RawDataDAO()
         self.tweet_dao = TweetDAO()

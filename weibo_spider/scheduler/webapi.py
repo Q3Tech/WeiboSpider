@@ -23,6 +23,7 @@ class WordFollowHandler(tornado.web.RequestHandler):
                 'word': word,
                 'running': follower.running,
                 'newest_timestamp': follower.wordfollow.newest_timestamp,
+                'interval': follower.fetch_interval,
             })
         self.set_header('Content-Type', 'application/javascript')
         self.write(json.dumps(result))
@@ -44,6 +45,6 @@ def install_web_api(_scheduler):
     AsyncIOMainLoop().install()
     app = tornado.web.Application([
         ("/", MainHandler),
-        ("/api/wordfollow", WordFollowHandler)
+        ("/api/wordfollow/", WordFollowHandler)
     ])
     app.listen(settings.SCHEDULER_API_PORT)

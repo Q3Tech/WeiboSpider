@@ -32,4 +32,7 @@ RABBITMQ_SETTINGS = {
     'host': '127.0.0.1',
     'virtualhost': 'weibo_spider'
 }
+
 SCHEDULER_API_PORT = 8091
+
+WEB_PORT = 8038

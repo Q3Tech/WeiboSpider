@@ -3,6 +3,7 @@
 
 """Weibo."""
 from sqlalchemy import Column, Integer, String, Boolean, TEXT, BIGINT
+from sqlalchemy import desc
 
 from .db_engine import Base
 from .db_engine import DBEngine
@@ -94,3 +95,43 @@ class TweetDAO(Singleton):
             created = True
 
         return created, tweet
+
+    def get_many_tweet(self, mids):
+        tweets = self.session.query(Tweet).filter(Tweet.mid.in_(mids)).order_by(desc(Tweet.timestamp))
+        return tweets
+
+    @classmethod
+    def get_tweetp_from_tweet(cls, tweet):
+        from spider import TweetP
+        tweetp = TweetP()
+        tweetp.update(
+            fetch_timestamp=tweet.fetch_timestamp,
+            uid=tweet.uid,
+            mid=tweet.mid,
+            nickname=tweet.nickname,
+            isforward=tweet.isforward,
+            text=tweet.text,
+            timestamp=tweet.timestamp,
+            device=tweet.device,
+            location=tweet.location,
+            share=tweet.share,
+            comment=tweet.comment,
+            like=tweet.like,
+        )
+        return tweetp
+
+    def get_tweetp_from_mids(self, mids):
+        tweets = self.session.query(Tweet).filter(Tweet.mid.in_(mids)).order_by(desc(Tweet.timestamp))
+        forward_mids = []
+        for tweet in tweets:
+            if tweet.forward_mid:
+                forward_mids.append(tweet.forward_mid)
+        forward_tweets = {tweet.mid: tweet for tweet in self.session.query(Tweet).filter(Tweet.mid.in_(forward_mids))}
+        forward_tweetps = {mid: self.get_tweetp_from_tweet(tweet) for mid, tweet in forward_tweets.items()}
+        tweetps = []
+        for tweet in tweets:
+            tweetp = self.get_tweetp_from_tweet(tweet)
+            if tweet.forward_mid:
+                tweetp.update(forward_tweet=forward_tweetps.get(tweet.forward_mid, None))
+            tweetps.append(tweetp)
+        return tweetps

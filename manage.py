@@ -35,6 +35,10 @@ def get_praser():
     # datacollecter
     _datacollecter = subparsers.add_parser('datacollecter', help='DataCollecter')
     _datacollecter.add_argument('-d', '--demon', help='run as demon', action='store_true')
+
+    # Web
+    _web = subparsers.add_parser('web', help='Web')
+    _web.add_argument('-d', '--demon', help='run as demon', action='store_true')
     return parser
 
 
@@ -81,7 +85,7 @@ def main():
             from scheduler.scheduler import Scheduler
             from scheduler.datacollecter import DataCollecter
             config_logger('WordFollower', logging.DEBUG)
-            config_logger('Scheduler', logging.DEBUG)
+            config_logger('Scheduler', logging.INFO)
             config_logger('DataCollecter', logging.INFO)
             Scheduler()
             # pid = os.fork()
@@ -95,6 +99,11 @@ def main():
             from scheduler.datacollecter import DataCollecter
             config_logger('DataCollecter', logging.INFO)
             DataCollecter()
+    elif args.subcommand == 'web':
+        if args.demon:
+            from website import start_server
+            config_logger('WordFollowUpdateHandler', logging.DEBUG)
+            start_server()
 
 
 if __name__ == '__main__':

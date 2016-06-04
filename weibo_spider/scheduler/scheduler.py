@@ -3,7 +3,6 @@
 import asyncio
 import logging
 import json
-import consul.aio
 import time
 import random
 import uuid
@@ -28,7 +27,7 @@ class Scheduler(object):
 
     def __init__(self):
         self.logger = logging.getLogger('Scheduler')
-        
+
         self.logger.info('Scheduler initializing.')
         self.workers = {}  # SpiderWorker
         self.accounts = {}   # 有效账户
@@ -46,7 +45,6 @@ class Scheduler(object):
         loop.run_forever()
 
     async def init(self):
-        self.consul = consul.aio.Consul()
         self.channel = await get_channel()
 
         self.load_accounts()
@@ -69,7 +67,6 @@ class Scheduler(object):
             }
             if account.is_login:
                 self.account_avail_set.add(account.email)
-        # await self.consul.kv.put('')
 
     def load_word_follow(self):
         wordfollow_dao = WordFollowDAO()
@@ -86,7 +83,7 @@ class Scheduler(object):
 
     async def deactive_word_follow(self, word):
         if word in self.word_follower:
-            self.word_follower[word].stop()
+            await self.word_follower[word].stop()
 
     def create_word_follow(self, word):
         self.wordfollow_dao.get_or_create(word=word)
@@ -95,7 +92,7 @@ class Scheduler(object):
     async def handle_heartbeat(self, channel, body, envelope, properties):
         body = json.loads(body.decode('utf-8'))
         worker_id = body['id']
-        self.logger.info('Got heart beat from {0}.'.format(worker_id))
+        self.logger.debug('Got heart beat from {0}.'.format(worker_id))
         if worker_id not in self.workers:
             self.logger.info('New worker online! {0}'.format(worker_id))
             self.workers[worker_id] = {
@@ -152,7 +149,7 @@ class Scheduler(object):
 
     async def recycle(self):
         while True:
-            self.logger.info('Recycle')
+            self.logger.debug('Recycle')
             now = time.time()
             recycle_workers = [id for id in self.workers if now - self.workers[id]['last_alive'] > 60]
             for worker_id in recycle_workers:
