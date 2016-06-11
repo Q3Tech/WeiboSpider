@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import logging
+import datetime
 import json
 from asyncio import ensure_future
 
@@ -17,7 +18,7 @@ class WordFollower(object):
         self.word = word
         self.wordfollow_dao = WordFollowDAO()
         self.wordfollowtweet_dao = WordFollowTweetDAO()
-        self.wordfollow = self.wordfollow_dao.get_or_create(word=word)
+        self.newest_timestamp = self.wordfollow_dao.get_newest_timestamp(word=word)
         self.running = False
         self.fetch_interval = 30
         self.worker = None
@@ -43,7 +44,7 @@ class WordFollower(object):
             payload = json.dumps({
                 'type': 'update_word_follow',
                 'keyword': self.word,
-                'newest_ts': self.wordfollow.newest_timestamp,
+                'newest_ts': self.newest_timestamp,
             })
             result = await self.scheduler.worker_rpc(
                 payload=payload,
@@ -55,10 +56,11 @@ class WordFollower(object):
             self.logger.info('Got response.')
             self.logger.info(result)
         body = json.loads(result['body'].decode('utf-8'))
-        self.wordfollow.newest_timestamp = max(self.wordfollow.newest_timestamp, body['max_ts'])
-        self.wordfollow_dao.commit()
+        self.newest_timestamp = max(self.newest_timestamp, body['max_ts'])
+        self.logger.info("Newest timestamp is {0}, aka {1}".format(
+            self.newest_timestamp, datetime.datetime.fromtimestamp(self.newest_timestamp / 1000)))
+        self.wordfollow_dao.update_newest_timestamp(word=self.word, newest_timestamp=self.newest_timestamp)
         mids = self.wordfollowtweet_dao.add_wordfollow_mids(self.word, body['mids'])  # get diff mids
-        self.wordfollowtweet_dao.commit()
         # 发布至 Exchange wordfollow_update, 动态展示
         await self.scheduler.channel.basic_publish(
             payload=json.dumps({
@@ -71,7 +73,7 @@ class WordFollower(object):
         return body['num_new']
 
     async def follow_worker(self):
-        word = self.wordfollow.word
+        word = self.word
         while self.running:
             self.logger.info('Try to update wordfollow {0}.'.format(word))
             num_new = await self.__update()

@@ -27,6 +27,7 @@ def get_praser():
     # spider
     _spider = subparsers.add_parser('spider', help='Spider')
     _spider.add_argument('-d', '--demon', help='run as demon', action='store_true')
+    _spider.add_argument('--fake', help='run a fake spider', action='store_true')
 
     # scheduler
     _scheduler = subparsers.add_parser('scheduler', help='Scheduler')
@@ -78,8 +79,12 @@ def main():
         if args.demon:
             from spider.worker import SpiderWorker
             config_logger('SpiderWorker', logging.DEBUG)
-            config_logger('Spider', logging.DEBUG)
-            SpiderWorker()
+            if args.fake:
+                config_logger('FakeSpider', logging.DEBUG)
+                SpiderWorker(fake=True)
+            else:
+                config_logger('Spider', logging.DEBUG)
+                SpiderWorker()
     elif args.subcommand == 'scheduler':
         if args.demon:
             from scheduler.scheduler import Scheduler
@@ -87,6 +92,7 @@ def main():
             config_logger('WordFollower', logging.DEBUG)
             config_logger('Scheduler', logging.INFO)
             config_logger('DataCollecter', logging.INFO)
+            config_logger('DBEngine', logging.DEBUG)
             Scheduler()
             # pid = os.fork()
             # if pid == 0:

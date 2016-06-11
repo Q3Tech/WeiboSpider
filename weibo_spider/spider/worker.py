@@ -11,11 +11,12 @@ from core import JsonSerializableEncoder
 from db import Account
 from .spider import Spider
 from .spider import LoginFailedException
+from .fakespider import FakeSpider
 
 
 class SpiderWorker(object):
 
-    def __init__(self):
+    def __init__(self, fake=False):
         # logger
         self.logger = logging.getLogger('SpiderWorker')
 
@@ -25,6 +26,9 @@ class SpiderWorker(object):
         self.account = None
         self.spider = None
         self.task_consume_tag = None
+        self.fake = fake
+        if fake:
+            self.logger.warn("SpiderWorker is running in fake mode.")
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.init())
         loop.run_forever()
@@ -134,7 +138,10 @@ class SpiderWorker(object):
         _account.email = account
         _account.cookies = cookies
         try:
-            self.spider = Spider(account=_account)
+            if self.fake:
+                self.spider = FakeSpider(account=_account)
+            else:
+                self.spider = Spider(account=_account)
         except LoginFailedException:
             self.spider = None
             await self.report_login_failed(account)

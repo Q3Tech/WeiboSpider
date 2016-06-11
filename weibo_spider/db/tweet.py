@@ -52,7 +52,6 @@ class TweetDAO(Singleton):
 
     def __init__(self):
         self.engine = DBEngine()
-        self.session = self.engine.session
 
     def save_tweetp(self, tweetp):
         if not tweetp.uid:
@@ -74,30 +73,32 @@ class TweetDAO(Singleton):
         if tweetp.isforward:
             tweet.forward_uid = tweetp.forward_tweet.uid
             tweet.forward_mid = tweetp.forward_tweet.mid
-        self.session.add(tweet)
-        self.session.commit()
+        with self.engine.Session() as session:
+            session.add(tweet)
         return tweet
 
     def update_or_create_tweetp(self, tweetp):
         created = False
         if not tweetp.uid:
             return created, None
-        tweet = self.session.query(Tweet).filter(
-            Tweet.mid == tweetp.mid).one_or_none()
-        if tweet:
-            tweet.fetch_timestamp = tweetp.fetch_timestamp
-            tweet.share = tweetp.share
-            tweet.comment = tweetp.comment
-            tweet.like = tweetp.like
-            self.session.commit()
-        else:
-            tweet = self.save_tweetp(tweetp)
-            created = True
+        with self.engine.Session() as session:
+            tweet = session.query(Tweet).filter(
+                Tweet.mid == tweetp.mid).one_or_none()
+            if tweet:
+                tweet.fetch_timestamp = tweetp.fetch_timestamp
+                tweet.share = tweetp.share
+                tweet.comment = tweetp.comment
+                tweet.like = tweetp.like
+                session.commit()
+            else:
+                tweet = self.save_tweetp(tweetp)
+                created = True
 
         return created, tweet
 
     def get_many_tweet(self, mids):
-        tweets = self.session.query(Tweet).filter(Tweet.mid.in_(mids)).order_by(desc(Tweet.timestamp))
+        with self.engine.Session() as session:
+            tweets = session.query(Tweet).filter(Tweet.mid.in_(mids)).order_by(desc(Tweet.timestamp))
         return tweets
 
     @classmethod
@@ -121,17 +122,19 @@ class TweetDAO(Singleton):
         return tweetp
 
     def get_tweetp_from_mids(self, mids):
-        tweets = self.session.query(Tweet).filter(Tweet.mid.in_(mids)).order_by(desc(Tweet.timestamp))
-        forward_mids = []
-        for tweet in tweets:
-            if tweet.forward_mid:
-                forward_mids.append(tweet.forward_mid)
-        forward_tweets = {tweet.mid: tweet for tweet in self.session.query(Tweet).filter(Tweet.mid.in_(forward_mids))}
-        forward_tweetps = {mid: self.get_tweetp_from_tweet(tweet) for mid, tweet in forward_tweets.items()}
-        tweetps = []
-        for tweet in tweets:
-            tweetp = self.get_tweetp_from_tweet(tweet)
-            if tweet.forward_mid:
-                tweetp.update(forward_tweet=forward_tweetps.get(tweet.forward_mid, None))
-            tweetps.append(tweetp)
+        with self.engine.Session() as session:
+            tweets = session.query(Tweet).filter(Tweet.mid.in_(mids)).order_by(desc(Tweet.timestamp))
+            forward_mids = []
+            for tweet in tweets:
+                if tweet.forward_mid:
+                    forward_mids.append(tweet.forward_mid)
+            forward_tweets = {tweet.mid: tweet for tweet in session.query(
+                Tweet).filter(Tweet.mid.in_(forward_mids))}
+            forward_tweetps = {mid: self.get_tweetp_from_tweet(tweet) for mid, tweet in forward_tweets.items()}
+            tweetps = []
+            for tweet in tweets:
+                tweetp = self.get_tweetp_from_tweet(tweet)
+                if tweet.forward_mid:
+                    tweetp.update(forward_tweet=forward_tweetps.get(tweet.forward_mid, None))
+                tweetps.append(tweetp)
         return tweetps

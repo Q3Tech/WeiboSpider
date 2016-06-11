@@ -22,7 +22,7 @@ class WordFollowHandler(tornado.web.RequestHandler):
             result.append({
                 'word': word,
                 'running': follower.running,
-                'newest_timestamp': follower.wordfollow.newest_timestamp,
+                'newest_timestamp': follower.newest_timestamp,
                 'interval': follower.fetch_interval,
             })
         self.set_header('Content-Type', 'application/javascript')

@@ -171,7 +171,7 @@ class Spider(object):
 
     def relogin(self, former_resp):
         """
-        处理长时间未登录后登陆的流程
+        处理长时间未登录后登陆的流程.
         """
         def encodeURIComponent(s):
             return urllib.parse.quote(str(s))
@@ -192,6 +192,7 @@ class Spider(object):
         except Exception:
             self.logger.exception('restore failed!')
             self.logger.info(resp.text)
+            self.handle_login_failed()
             return False
 
         alt = json_resp['data']['alt']

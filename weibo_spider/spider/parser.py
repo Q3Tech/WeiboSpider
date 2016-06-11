@@ -64,7 +64,7 @@ class Parser(object):
         result = ''
         while num:
             result = cls.base62_base[num % 62] + result
-            num /= 62
+            num //= 62
         return result
 
     @classmethod
@@ -91,7 +91,7 @@ class Parser(object):
         result = ''
         while mid:
             result = cls.base62_encode(mid % 10000000) + result
-            mid /= 10000000
+            mid //= 10000000
         return result
 
     @classmethod

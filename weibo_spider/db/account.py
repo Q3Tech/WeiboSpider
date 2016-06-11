@@ -10,6 +10,8 @@ from sqlalchemy.sql.expression import func
 
 from .db_engine import Base
 from .db_engine import DBEngine
+from .db_engine import ensure_session
+
 
 from core import Singleton
 
@@ -45,23 +47,26 @@ class AccountDAO(Singleton):
 
     def __init__(self):
         self.engine = DBEngine()
-        self.session = self.engine.session
 
     def not_login_iter(self):
-        for account in self.session.query(Account).filter(Account.is_login == false()):
-            yield account
+        with self.engine.Session() as session:
+            for account in session.query(Account).filter(Account.is_login == false()):
+                yield account
 
     def account_iter(self):
-        for account in self.session.query(Account):
-            yield account
+        with self.engine.Session() as session:
+            for account in session.query(Account):
+                yield account
 
+    @ensure_session
     def get_or_create(self, *args, **kwargs):
+        session = kwargs.pop('session')
         assert 'id' in kwargs or 'email' in kwargs
         if 'id' in kwargs:
-            account = self.session.query(Account).filter(
+            account = session.query(Account).filter(
                 Account.id == kwargs['id']).one_or_none()
         elif 'email' in kwargs:
-            account = self.session.query(Account).filter(
+            account = session.query(Account).filter(
                 Account.email == kwargs['email']).one_or_none()
         return account
 
@@ -70,13 +75,14 @@ class AccountDAO(Singleton):
         ex:
         AccountDAO.update_or_create(email='shuntuov38964@163.com', password='a123456')
         """
+        session = kwargs.pop('session')
         created = False
         assert 'id' in kwargs or 'email' in kwargs
         if 'id' in kwargs:
-            account = self.session.query(Account).filter(
+            account = session.query(Account).filter(
                 Account.id == kwargs['id']).one_or_none()
         elif 'email' in kwargs:
-            account = self.session.query(Account).filter(
+            account = session.query(Account).filter(
                 Account.email == kwargs['email']).one_or_none()
 
         if account:
@@ -86,13 +92,10 @@ class AccountDAO(Singleton):
         else:
             created = True
             account = Account(**kwargs)
-            self.session.add(account)
-        self.session.commit()
+            session.add(account)
         return account, created
 
-    def get_random_account(self):
-        q = self.session.query(Account).filter(Account.is_login == true())
+    @ensure_session
+    def get_random_account(self, session):
+        q = session.query(Account).filter(Account.is_login == true())
         return q.order_by(func.rand()).first()
-
-    def commit(self):
-        self.session.commit()

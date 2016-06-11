@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """Weibo."""
 from sqlalchemy import Column, Integer, String, BIGINT
 from sqlalchemy import UniqueConstraint
 from sqlalchemy import desc
 from sqlalchemy.orm import load_only
 
-
 from .db_engine import Base
 from .db_engine import DBEngine
+from .db_engine import ensure_session
 
 from core import Singleton
 
@@ -39,64 +38,71 @@ class WordFollowDAO(Singleton):
 
     def __init__(self):
         self.engine = DBEngine()
-        self.session = self.engine.session
 
-    def get_wordfollow(self, word):
-        return self.session.query(WordFollow).filter(
+    @ensure_session
+    def get_wordfollow(self, word, session=None):
+        return session.query(WordFollow).filter(
             WordFollow.word == word).one_or_none()
 
-    def get_or_create(self, word):
-        wordfollow = self.session.query(WordFollow).filter(
+    @ensure_session
+    def get_or_create(self, word, session=None):
+        wordfollow = session.query(WordFollow).filter(
             WordFollow.word == word).one_or_none()
-
+        print("This:", wordfollow)
         if not wordfollow:
+            print("word {0} not found, create new.".format(word))
             wordfollow = WordFollow(word=word, newest_timestamp=0)
-            self.session.add(wordfollow)
-            self.session.commit()
+            session.add(wordfollow)
         return wordfollow
 
     def all_iter(self):
-        for wordfollow in self.session.query(WordFollow):
-            yield wordfollow
+        with self.engine.Session() as session:
+            for wordfollow in session.query(WordFollow):
+                yield wordfollow
 
-    def commit(self):
-        self.session.commit()
+    @ensure_session
+    def get_newest_timestamp(self, word, session=None):
+        wordfollow = self.get_or_create(word=word, session=session)
+        newest_timestamp = wordfollow.newest_timestamp
+        return newest_timestamp
+
+    @ensure_session
+    def update_newest_timestamp(self, word, newest_timestamp, session=None):
+        wordfollow = self.get_or_create(word=word, session=session)
+        print(word, newest_timestamp, wordfollow.id)
+        wordfollow.newest_timestamp = newest_timestamp
+        session.commit()
 
 
 class WordFollowTweetDAO(Singleton):
 
-    def __init__(self):
-        self.engine = DBEngine()
-        self.session = self.engine.session
-
-    def add_wordfollow_mids(self, word, mids):
-        word_id = self.session.query(WordFollow).filter(
+    @ensure_session
+    def add_wordfollow_mids(self, word, mids, session=None):
+        word_id = session.query(WordFollow).filter(
             WordFollow.word == word).one_or_none()
         if not word_id:
             return
         word_id = word_id.id
-        exists_mid_query = self.session.query(WordFollowTweet).filter(
+        exists_mid_query = session.query(WordFollowTweet).filter(
             WordFollowTweet.mid.in_(mids)).options(load_only("mid"))
         exists_mids = [x.mid for x in exists_mid_query]
         mids = set(mids) - set(exists_mids)
         data = []
         for mid in mids:
             data.append(dict(word_id=word_id, mid=mid))
-        self.session.bulk_insert_mappings(WordFollowTweet, data)
+        session.bulk_insert_mappings(WordFollowTweet, data)
         return mids
 
-    def get_word_latest_mids(self, word, num=50):
-        word_id = self.session.query(WordFollow).filter(
+    @ensure_session
+    def get_word_latest_mids(self, word, num=50, session=None):
+        word_id = session.query(WordFollow).filter(
             WordFollow.word == word).one_or_none()
         if not word_id:
             return []
         word_id = word_id.id
         mids = []
-        mids_query = self.session.query(WordFollowTweet).filter(
+        mids_query = session.query(WordFollowTweet).filter(
             WordFollowTweet.word_id == word_id).order_by(desc(WordFollowTweet.id)).limit(num)
         for mid in mids_query:
             mids.append(mid.mid)
         return mids
-
-    def commit(self):
-        self.session.commit()
