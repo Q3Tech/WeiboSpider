@@ -16,6 +16,7 @@ def get_praser():
     _login = subparsers.add_parser('login', help='Login service')
     _login.add_argument('-d', '--demon', help='Run as demon.', action='store_true')
     _login.add_argument('-i', '--import-account', help='Import accounts from file')
+    _login.add_argument('-p', '--proxy', help='Use proxy')
 
     # shell
     subparsers.add_parser('shell', help='Shell service')
@@ -68,7 +69,10 @@ def main():
             import_account_from_file(filename=args.import_account)
         else:
             from login.manul_login import start_login
-            start_login()
+            if args.proxy:
+                start_login(proxy=args.proxy)
+            else:
+                start_login()
     elif args.subcommand == 'db':
         if 'create_table' in args:
             from db.db_engine import DBEngine

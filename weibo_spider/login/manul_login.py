@@ -92,7 +92,8 @@ def login(login_executer, email, password):
     return True
 
 
-def start_login():
-    login_executer = LoginExecuter()
+def start_login(proxy=None):
+    # socks5://127.0.0.1:1080
+    login_executer = LoginExecuter(proxy=proxy)
     for account in AccountDAO().not_login_iter():
         login(login_executer=login_executer, email=account.email, password=account.password)
