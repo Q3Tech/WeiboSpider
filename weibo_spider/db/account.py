@@ -70,6 +70,7 @@ class AccountDAO(Singleton):
                 Account.email == kwargs['email']).one_or_none()
         return account
 
+    @ensure_session
     def update_or_create(self, *args, **kwargs):
         """
         ex:
