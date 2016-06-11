@@ -96,14 +96,11 @@ class Spider(object):
         return json.dumps(self.get_session_cookies(self.s))
 
     def save_cookies(self):
-        self.account.cookies = json.dumps(self.get_session_cookies(self.s))
         account_dao = AccountDAO()
-        account_dao.commit()
+        account_dao.update_or_create(email=self.account.email, cookies=json.dumps(self.get_session_cookies(self.s)))
 
     def handle_login_failed(self):
         self.account.is_login = False
-        account_dao = AccountDAO()
-        account_dao.commit()
         raise LoginFailedException
 
     @classmethod

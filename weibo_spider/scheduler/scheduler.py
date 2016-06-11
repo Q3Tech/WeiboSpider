@@ -125,9 +125,7 @@ class Scheduler(object):
         if _type == 'loginfailed':
             self.logger.warn('Account {0} login failed.'.format(body['account']))
             self.accounts[body['account']]['is_login'] = False
-            account = self.account_dao.get_or_create(email=body['account'])
-            account.is_login = False
-            self.account_dao.commit()
+            self.account_dao.update_or_create(email=body['account'], is_login=False)
         await channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
 
     async def bind_account(self, worker_id):

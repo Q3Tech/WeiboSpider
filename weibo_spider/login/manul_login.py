@@ -70,7 +70,7 @@ def import_account_from_file(filename):
     create_num = 0
     account_dao = AccountDAO()
     for line in account_file.readlines():
-        print (line)
+        print(line)
         line_num += 1
         email, password = line.split('----')[:2]
         _, created = account_dao.update_or_create(email=email, password=password)
