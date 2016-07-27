@@ -42,7 +42,7 @@ def get_app():
 async def init():
     async def handle_update(channel, body, envelope, properties):
         body = json.loads(body.decode('utf-8'))
-        print(body)
+        # print(body)
         await channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
         await asyncio.sleep(1)
         WordFollowUpdateHandler.update(word=body['word'], mids=body['mids'])

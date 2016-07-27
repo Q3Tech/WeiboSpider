@@ -101,7 +101,7 @@ class SpiderWorker(object):
             self.logger.info('__update page {0}.'.format(page))
             for weibo in weibos:
                 if weibo.timestamp >= newest_ts:  # New
-                    print(weibo.pretty())
+                    # print(weibo.pretty())
                     num_new += 1
                     mids.append(weibo.mid)
                 max_ts = max(max_ts, weibo.timestamp)

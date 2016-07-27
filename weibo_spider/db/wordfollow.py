@@ -50,7 +50,7 @@ class WordFollowDAO(Singleton):
             WordFollow.word == word).one_or_none()
         print("This:", wordfollow)
         if not wordfollow:
-            print("word {0} not found, create new.".format(word))
+            print("word {0} not found, create new.".format(word.encode('utf-8')))
             wordfollow = WordFollow(word=word, newest_timestamp=0)
             session.add(wordfollow)
         return wordfollow
@@ -69,7 +69,7 @@ class WordFollowDAO(Singleton):
     @ensure_session
     def update_newest_timestamp(self, word, newest_timestamp, session=None):
         wordfollow = self.get_or_create(word=word, session=session)
-        print(word, newest_timestamp, wordfollow.id)
+        # print(word, newest_timestamp, wordfollow.id)
         wordfollow.newest_timestamp = newest_timestamp
         session.commit()
 
