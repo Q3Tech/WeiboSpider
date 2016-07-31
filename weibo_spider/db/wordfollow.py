@@ -56,7 +56,6 @@ class WordFollowDAO(Singleton):
 
     def get_or_create(self, word, custom_url, region=None, w_type=None,
             c_type=None, s_time=None, e_time=None):
-        self.logger = logging.getLogger('Scheduler')
         wordfollow = self.session.query(WordFollow).filter(
             WordFollow.word == word,
             WordFollow.custom_url == custom_url).one_or_none()
