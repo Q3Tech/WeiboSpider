@@ -296,6 +296,34 @@ class Spider(object):
             if not next_url:
                 break
 
+    def custom_fetch_search_iter(self, keyword, start_page=1, custom_url=None):
+        quote_keyword = urllib.parse.quote(urllib.parse.quote(keyword))
+        base_url = 'http://s.weibo.com/weibo/{quote}'.format(quote=quote_keyword)
+        if custom_url:
+            base_url += custom_url
+        page = start_page - 1
+        assert(page >= 0)
+        next_url = None
+        while True:
+            page += 1
+            weibos = []
+            self.logger.info('Advanced Search: Fetching search page {page}'.format(page=page))
+            if page == 1:
+                url = base_url + '&nodup=1'
+                referer = 'http://s.weibo.com/weibo/{quote}?topnav=1&wvr=6'.format(quote=quote_keyword)
+            else:
+                url = base_url + '&nodup=1&page={page}'.format(page=page)
+                referer = base_url + '&nodup=1&page={page}'.format(page=page - 1)
+            self.logger.info('url={0}'.format(url))
+            resp = self.fetch(url=url, referer=referer)
+            _weibos, _, next_url = self.parser.parse_search_result(resp.text)
+            weibos += _weibos
+            self.save_weibo(weibos)
+            yield weibos, page, next_url is not None
+            print('next_url', next_url)
+            if not next_url:
+                break
+
     def fetch_topic_iter(self, keyword):
         def get_pl_name(text):
             max_len = 0

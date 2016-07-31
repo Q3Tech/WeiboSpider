@@ -11,6 +11,19 @@ from db import WordFollowTweetDAO
 from db import TweetDAO
 
 
+class WordTweetSumHandler(tornado.web.RequestHandler):
+    """返回关键字下微博总数"""
+    def get(self):
+        word = self.get_query_argument('word')
+        s_time = self.get_query_argument('s_time')
+        e_time = self.get_query_argument('e_time')
+        _type = self.get_query_argument('type')
+        wordfollowtweet_dao = WordFollowTweetDAO()
+        _sum = wordfollowtweet_dao.get_mids_sum(word, s_time, e_time, _type)
+        self.set_header('Content-Type', 'application/javascript')
+        self.write(json.dumps(_sum))
+
+
 class WordUpdateHandler(tornado.web.RequestHandler):
     """返回关键字下最近50条微博"""
     def get(self):

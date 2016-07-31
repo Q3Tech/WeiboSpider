@@ -72,22 +72,35 @@ class Scheduler(object):
         wordfollow_dao = WordFollowDAO()
         for wordfollow in wordfollow_dao.all_iter():
             word = wordfollow.word
-            self.logger.debug('initializing wordfollower {0}'.format(word))
+            custom_url = wordfollow.custom_url
+            self.logger.debug('initializing wordfollower {0}, {1}'.format(word, custom_url))
             if word not in self.word_follower:
-                self.word_follower[word] = WordFollower(word=word, scheduler=self)
+                self.word_follower[word] = WordFollower(word=word, scheduler=self, custom_url=custom_url)
 
-    async def active_word_follow(self, word):
-        if word not in self.word_follower:
-            self.create_word_follow(word)
+    async def active_word_follow(self, word, custom_url=None, region=None, w_type=None, c_type=None,
+            s_time=None, e_time=None):
+        # if word not in self.word_follower:
+        self.logger.debug('Active {0}'.format(word))
+        if word in self.word_follower:
+            wordfollower = self.word_follower[word]
+            if wordfollower.custom_url != custom_url:
+                wordfollower.stop()
+                self.create_word_follow(word, custom_url, region, w_type, c_type, s_time, e_time)
+        else:
+            self.create_word_follow(word, custom_url, region, w_type, c_type, s_time, e_time)
         await self.word_follower[word].start()
 
     async def deactive_word_follow(self, word):
         if word in self.word_follower:
             await self.word_follower[word].stop()
 
-    def create_word_follow(self, word):
-        self.wordfollow_dao.get_or_create(word=word)
-        self.word_follower[word] = WordFollower(word=word, scheduler=self)
+    def create_word_follow(self, word, custom_url=None, region=None, w_type=None,
+            c_type=None, s_time=None, e_time=None):
+        self.logger.debug('create_word_follow: {0} {1} {2} {3} {4}'.format(word, custom_url, region, w_type, c_type))
+        self.wordfollow_dao.get_or_create(word=word, custom_url=custom_url, region=region,
+                w_type=w_type, c_type=c_type, s_time=s_time, e_time=e_time)
+        self.logger.debug('{0} {1} {2} {3} {4}'.format(word, custom_url, region, w_type, c_type))
+        self.word_follower[word] = WordFollower(word=word, scheduler=self, custom_url=custom_url)
 
     async def handle_heartbeat(self, channel, body, envelope, properties):
         body = json.loads(body.decode('utf-8'))
@@ -151,7 +164,7 @@ class Scheduler(object):
         while True:
             self.logger.debug('Recycle')
             now = time.time()
-            recycle_workers = [id for id in self.workers if now - self.workers[id]['last_alive'] > 60]
+            recycle_workers = [id for id in self.workers if now - self.workers[id]['last_alive'] > 60 * 2]
             for worker_id in recycle_workers:
                 account = self.workers[worker_id]['account']
                 self.logger.warn('recollect {0} {1}'.format(worker_id, account))
@@ -161,7 +174,7 @@ class Scheduler(object):
                         self.account_avail_set.add(account)
                     self.logger.info('{0} recycled'.format(account))
                 self.workers.pop(worker_id)
-            await asyncio.sleep(5)
+            await asyncio.sleep(60)
 
     async def worker_rpc(self, payload, properties=None, timeout=60):
         """

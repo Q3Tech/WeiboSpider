@@ -32,7 +32,13 @@ class WordFollowHandler(tornado.web.RequestHandler):
         action = self.get_argument('action')
         if action == 'active':
             word = self.get_argument('word')
-            await scheduler.active_word_follow(word)
+            custom_url = self.get_argument('custom_url', default='')
+            region = self.get_argument('region', default='')
+            s_time = self.get_argument('s_time', default='0')
+            e_time = self.get_argument('e_time', default='0')
+            w_type = self.get_argument('w_type', default='&typeall=1')
+            c_type = self.get_argument('c_type', default='&suball=1')
+            await scheduler.active_word_follow(word, custom_url, region, w_type, c_type, s_time, e_time)
         elif action == 'deactive':
             word = self.get_argument('word')
             await scheduler.deactive_word_follow(word)

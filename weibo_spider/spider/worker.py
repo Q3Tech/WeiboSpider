@@ -60,7 +60,7 @@ class SpiderWorker(object):
                     'reply_to': self.exclusive,
                 },
             )
-            await asyncio.sleep(5)
+            await asyncio.sleep(60)
 
     async def handle_exclusive(self, channel, body, envelope, properties):
         body = json.loads(body.decode('utf-8'))
@@ -73,8 +73,9 @@ class SpiderWorker(object):
         body = json.loads(body.decode('utf-8'))
         self.logger.info('Got a task of type {0}'.format(body['type']))
         if body['type'] == 'update_word_follow':
-            self.logger.info('Got a update_word_follow task!')
-            result = await self.update_word_follow(body['keyword'], body['newest_ts'])
+            self.logger.info('Got a update_word_follow task! %s-%s' % (body['keyword'], body['newest_ts']))
+            result = await self.update_word_follow(body['keyword'], body['newest_ts'],
+                    body['custom_url'], body['time_flag'])
             await self.channel.basic_publish(
                 payload=json.dumps(result),
                 exchange_name='amq.direct',
@@ -85,9 +86,12 @@ class SpiderWorker(object):
             )
             await channel.basic_client_ack(delivery_tag=envelope.delivery_tag)
 
-    async def update_word_follow(self, keyword, newest_ts):
+    async def update_word_follow(self, keyword, newest_ts, custom_url=None, time_flag=None):
         """更新至指定时间, 返回新微博数量和他们的mid."""
-        it = self.spider.fetch_search_iter(keyword=keyword)
+        if custom_url:
+            it = self.spider.custom_fetch_search_iter(keyword=keyword, custom_url=custom_url)
+        else:
+            it = self.spider.fetch_search_iter(keyword=keyword)
         min_ts = int((time.time() + 3600) * 1000)
         max_ts = 0
         num_new = 0
@@ -96,7 +100,7 @@ class SpiderWorker(object):
         for weibos, page, _ in it:
             self.logger.info('__update page {0}.'.format(page))
             for weibo in weibos:
-                if weibo.timestamp >= newest_ts:  # New
+                if time_flag or weibo.timestamp >= newest_ts:  # New
                     print(weibo.pretty())
                     num_new += 1
                     mids.append(weibo.mid)
@@ -105,7 +109,7 @@ class SpiderWorker(object):
             self.logger.info("min_ts={min_ts}, max_ts={max_ts}, newest_ts={newest_ts}.".format(
                 min_ts=min_ts, max_ts=max_ts, newest_ts=newest_ts))
             await self.save_weibo_data(weibos)
-            if min_ts < newest_ts:
+            if not time_flag and min_ts < newest_ts:
                 self.logger.info('break __update.')
                 break
             # if page % 10 == 0:
