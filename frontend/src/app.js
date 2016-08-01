@@ -18,6 +18,9 @@ router.map({
     },
     '/wordfollow/': {
         component: FollowContainer
+    },
+    '/': {
+        component: FollowContainer
     }
 })
 

@@ -10,17 +10,24 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-
             </div>
+            <div class="navbar-collapse collapse">
+            <ul class="nav navbar-nav" style="float: right;">
+                <li><a href="#!/wordfollow-control/">关键词跟踪控制</a></li>
+            </ul>
+            </div>
+            <!--
             <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
                 <li><a href="#!/wordfollow/">关键词跟踪</a></li>
                 <li><a href="#!/wordfollow-control/">关键词跟踪控制</a></li>
             </ul>
+            </div>
             <div class="navbar-form">
                 <input type="text" class="form-control" v-model="inputKeyword" placeholder="关键词">
                 <button class="btn btn-default" v-on:click="addKeyword">跟踪</button>
             </div>
+            -->
         </nav>
         <router-view
             class="view"
@@ -51,6 +58,11 @@
                     'action': 'active',
                     'word': this.inputKeyword
                 });
+            }
+        },
+        events: {
+            'wf-control': function(word) {
+                this.$broadcast('container-add-keyword', word);
             }
         }
     }

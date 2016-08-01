@@ -6,6 +6,7 @@
             <th>运行状态</th>
             <th>最近一次爬取</th>
             <th>爬取间隔</th>
+            <th>前台展示</th>
             </thead>
             <tbody>
             <tr v-for="wf in wordfollowers">
@@ -13,6 +14,7 @@
                 <td><button class="btn" v-bind:class="{'btn-danger': wf.running, 'btn-success': !wf.running }" v-on:click="switch_running(wf)">{{ wf.running?"停止":"跟踪" }}</button> </td>
                 <td>{{ wf.time_text }}</td>
                 <td>{{ wf.interval }}</td>
+                <td><button class="btn-success" v-on:click="display(wf)">展示</button></td>
             </tr>
             </tbody>
         </table>
@@ -67,6 +69,9 @@
                 }, function () {
                     $this.load();
                 });
+            },
+            display: function(wf) {
+                this.$dispatch('wf-control', wf.word)
             }
         },
         route: {
