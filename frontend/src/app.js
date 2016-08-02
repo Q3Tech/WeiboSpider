@@ -16,7 +16,7 @@ router.map({
     '/wordfollow-control/': {
         component: WordFollowControl
     },
-    '/wordfollow/': {
+    '/': {
         component: FollowContainer
     }
 })
