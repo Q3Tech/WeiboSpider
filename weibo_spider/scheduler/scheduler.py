@@ -75,19 +75,27 @@ class Scheduler(object):
             self.logger.debug('initializing wordfollower {0}'.format(word))
             if word not in self.word_follower:
                 self.word_follower[word] = WordFollower(word=word, scheduler=self)
+                self.logger.debug('Create wordfollower')
 
-    async def active_word_follow(self, word):
-        if word not in self.word_follower:
-            self.create_word_follow(word)
+    async def active_word_follow(self, word, custom_url=None):
+        self.logger.info('Getting active_word_follow {0}-{1}'.format(word, custom_url))
+        if word in self.word_follower:
+            wordfollower = self.word_follower[word]
+            if wordfollower.custom_url != custom_url:
+                await wordfollower.stop()
+                wordfollower.custom_url = custom_url
+        else:
+            self.create_word_follow(word, custom_url)
         await self.word_follower[word].start()
 
     async def deactive_word_follow(self, word):
         if word in self.word_follower:
             await self.word_follower[word].stop()
 
-    def create_word_follow(self, word):
+    def create_word_follow(self, word, custom_url):
+        self.logger.info('Creatomg_word_follow {0}-{1}'.format(word, custom_url))
         self.wordfollow_dao.get_or_create(word=word)
-        self.word_follower[word] = WordFollower(word=word, scheduler=self)
+        self.word_follower[word] = WordFollower(word=word, scheduler=self, custom_url=custom_url)
 
     async def handle_heartbeat(self, channel, body, envelope, properties):
         body = json.loads(body.decode('utf-8'))

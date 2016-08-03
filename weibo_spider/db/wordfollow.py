@@ -38,6 +38,7 @@ class WordFollowDAO(Singleton):
 
     def __init__(self):
         self.engine = DBEngine()
+        self.logger = logging.getLogger('WordFollower')
 
     @ensure_session
     def get_wordfollow(self, word, session=None):
